@@ -14,28 +14,16 @@ library("janitor")
 sf::sf_use_s2(FALSE) # to work on a flat earth - ask lars about this
 
 # 2. Reading in species observations containing coordinates and convert them to sf:
+rm(list=ls())
 intacta_obs <- read.csv("data/intacta_obs.csv")
-intacta_obs <- intacta_obs[!is.na(intacta_obs$decimalLatitude),]
-intacta_obs <- intacta_obs[!is.na(intacta_obs$decimalLongitude),]
 intacta_obs_sf <- st_as_sf(
   intacta_obs,
   coords = c("decimalLongitude", "decimalLatitude"),
   crs = 4326 # the standard coord system
 )
 
-proxima_obs <- read.csv("data/proxima_obs.csv")
-proxima_obs <- proxima_obs[!is.na(proxima_obs$decimalLatitude),]
-proxima_obs <- proxima_obs[!is.na(proxima_obs$decimalLongitude),]
-proxima_obs_sf <- st_as_sf(
-  proxima_obs,
-  coords = c("decimalLongitude", "decimalLatitude"),
-  crs = 4326 # the standard coord system
-)
-
 all_odonata_obs <- read.csv("data/all_odonata_obs.csv")
-all_odonata_obs <- all_odonata_obs[!is.na(all_odonata_obs$decimalLatitude),]
-all_odonata_obs <- all_odonata_obs[!is.na(all_odonata_obs$decimalLongitude),]
-all_odonata_obs <- st_as_sf(
+all_odonata_obs_sf <- st_as_sf(
   all_odonata_obs,
   coords = c("decimalLongitude", "decimalLatitude"),
   crs = 4326 # the standard coord system
@@ -51,15 +39,17 @@ CAN_USA_atlas <- st_read("data/CAN_USA_atlas.gpkg")
 st_crs(CAN_USA_atlas)
 st_crs(all_odonata_obs)
 
-# What watersheds contain our dragonflies? Only watershed IDs where one of our 
-# observations is found are kept, and possibly multiplicated if there are 
-# multiple observations within that polygon.
-odonata_obs_with_hydroatlas <- st_join(CAN_USA_atlas, all_odonata_obs, left=FALSE)
+# Keep only watershed IDs where one of our observations is found
+# note there could still be multiple rows per PFAF
+odonata_obs_with_hydroatlas <- st_join(CAN_USA_atlas, all_odonata_obs_sf, left=FALSE)
 
-# Remove unneeded geometry data.
+# tally number of observations per PFAF and include it as a column
+odonata_obs_with_hydroatlas <- odonata_obs_with_hydroatlas %>%
+  add_count(PFAF_ID, name = "watershed_obs_count")
+
 # Remove duplicate PFAFs + species combos, since we only care if the species is present.
 # Widen dataframe to include presence/absence cols for each species
-odonata_obs_with_hydroatlas <-
+odonata_obs_with_hydroatlas_long <-
 
   odonata_obs_with_hydroatlas |>
   st_drop_geometry() |>
@@ -71,8 +61,40 @@ odonata_obs_with_hydroatlas <-
   ) |>
   clean_names() # replace spaces with _ in colnames
 
-odonata_obs_with_hydroatlas$GBIF_species_count <-
-  rowSums(odonata_obs_with_hydroatlas[, 2:474])
+odonata_obs_with_hydroatlas_long <- odonata_obs_with_hydroatlas_long %>%
+  rename(PFAF_ID = pfaf_id)
 
-# 5. Writing out our new file
-st_write(odonata_obs_with_hydroatlas, "data/odonata_hydroatlas_overlay.gpkg")
+# how many different species per PFAF?
+odonata_obs_with_hydroatlas_long$GBIF_species_count <-
+  rowSums(odonata_obs_with_hydroatlas_long[, 2:474])
+
+
+# Adding back in columns of interest 
+# note since the original, final, and long all end up having the same number
+# of rows, no PFAF-species combos were lost by the joining.
+odonata_obs_with_hydroatlas <- 
+  odonata_obs_with_hydroatlas[!duplicated(odonata_obs_with_hydroatlas$PFAF_ID),]
+
+odonata_obs_with_hydroatlas_final <- left_join(
+  odonata_obs_with_hydroatlas, odonata_obs_with_hydroatlas_long, by="PFAF_ID")
+
+odonata_obs_with_hydroatlas_final$institutionCode <- NULL
+odonata_obs_with_hydroatlas_final$HYBAS_ID <- NULL
+odonata_obs_with_hydroatlas_final$gbifID <- NULL
+odonata_obs_with_hydroatlas_final$order <- NULL
+odonata_obs_with_hydroatlas_final$family <- NULL
+odonata_obs_with_hydroatlas_final$genus <- NULL
+odonata_obs_with_hydroatlas_final$species <- NULL
+odonata_obs_with_hydroatlas_final$taxonRank <- NULL
+odonata_obs_with_hydroatlas_final$countryCode <- NULL
+odonata_obs_with_hydroatlas_final$stateProvince <- NULL
+odonata_obs_with_hydroatlas_final$individualCount <- NULL
+odonata_obs_with_hydroatlas_final$coordinateUncertaintyInMeters <- NULL
+odonata_obs_with_hydroatlas_final$day <- NULL
+odonata_obs_with_hydroatlas_final$month <- NULL
+odonata_obs_with_hydroatlas_final$year <- NULL
+odonata_obs_with_hydroatlas_final$geom <- NULL
+
+
+# 5. Writing out our new file# 5. Writing out our newNULL file
+st_write(odonata_obs_with_hydroatlas_final, "data/odonata_hydroatlas_overlay.gpkg")
