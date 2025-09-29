@@ -47,3 +47,8 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+
+
+# stuff ryan wants to leave out
+data/
