@@ -78,7 +78,7 @@ fit_m2 <- ranger(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+re
 #from these we can estimate the accuracy using a binary classification split at 0.5
 #this should be based on the test data
 predict(fit_m1,test)
- #or
+#or
 predict(fit_m2,test)$predictions
 #from this we can also see that the two models are identical:
 pred$predictions==predict(fit_m1,test)
@@ -171,7 +171,7 @@ for(i in 1:10){
   
   #replace the milfoil observation with milfoil observation from the other datasets
   
-  
+      
 #second part is running prediction models for each training set
   
 
@@ -324,6 +324,4 @@ v4<- visreg(fit_m, "ppd_pk_uav", partial=FALSE, rug=FALSE, gg=TRUE)+
 v5<- visreg(fit_m, "ppd_pk_sav", partial=FALSE, rug=FALSE, gg=TRUE)+
   theme_classic()
   
-grid.arrange(v1,v2,v3,v4,v5,ncol=1)
-
-
+grid.arrange(v1,v2,v3,v4,v5,ncol=1) 

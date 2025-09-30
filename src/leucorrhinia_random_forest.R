@@ -10,9 +10,12 @@
 # 1. Libraries
 library(sf)
 library(ranger)
-library(rcompanion)
-library(kernelshap)
 library(shapviz)
+#install.packages("future.apply", dependencies = TRUE, type = "binary")
+library(future.apply)
+#install.packages("caret", dependencies = TRUE, type = "binary")
+library(caret)
+library(recipes)
 library(caret)
 library(ggplot2)
 library(viridis)
@@ -21,6 +24,11 @@ library(dplyr)
 library(lessR)
 library(visreg)
 library(randomForest)
+# issues with rtools required some more precise installation
+#install.packages("rcompanion", type = "binary", repos = "https://cloud.r-project.org/")
+library(rcompanion) #issue downloading despite rtools being installed....
+#install.packages("kernelshap", type = "binary", repos = "https://cloud.r-project.org/")
+library(kernelshap) #issue downloading
 
 # 2. Initial data processing
 rm(list=ls())
@@ -55,7 +63,7 @@ intacta_rf <- as.data.frame(
 )
 
 
-# 3. Random Forest Predictions
+# 3. Initial Random Forest Predictions
 number_watersheds_for_training <- floor(0.75 * nrow(intacta_rf))
 set.seed(849)
 training_indeces <- sample(seq_len(nrow(intacta_rf)), size = number_watersheds_for_training)
@@ -65,12 +73,55 @@ test_watersheds <- intacta_rf[-training_indeces,]
 
 # running the RF to create trained model
 rf_model <-
-  randomForest(factor(leucorrhinia_intacta)~
+  ranger(factor(leucorrhinia_intacta)~
                pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
                soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
                data = training_watersheds)
 
 # estimating accuracy:
-# need to create pred here
-predict(rf_model, test_watersheds)
-sum(pred$predictions==test$MyrSpic)/length(test$MyrSpic)
+pred <- predict(rf_model, test_watersheds)
+estimated_accuracy <- # proportion of correct classifications
+  sum(pred$predictions==test_watersheds$leucorrhinia_intacta)/length(test_watersheds$leucorrhinia_intacta) 
+
+false_positive_rate <- 
+  sum(as.numeric(pred$predictions[which(test_watersheds$Leucorrhinia_intacta==1)])-1)/
+  length(which(test_watersheds$leucorrhinia_intacta==1)) # note = 0... so model may be very strongly biased toward predicting absences
+false_negative_rate <-
+  sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==0)])-1)/
+  length(which(test_watersheds$leucorrhinia_intacta==0))
+
+table(test_watersheds$leucorrhinia_intacta) # shows #absences and #presences for reference (each about 350)
+table(pred$predictions) # shows prediction predicts 400 presences 300 absences
+# prob some issue above
+
+
+# 4. Tuning the model
+
+# this tuning grid lists all combinations of the RF hyperparameters
+tgrid <- expand.grid(
+  mtry = c(2,3,4,5,10), # removed 15,20 and added 10 since we only have 11 parameters? ask lars
+  splitrule = "gini",
+  min.node.size = c(5,7,10)
+)
+
+# creates random forest trees with all those combinations, evaluating their 
+# performance to learn best hyperparameter combinations
+train(factor(leucorrhinia_intacta)~
+        pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
+        soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+        data = training_watersheds,
+        method = "ranger",
+        tuneGrid = tgrid,
+        num.trees = 500,
+        importance = "impurity")
+
+
+# 5. Evaluating this tuned model over multiple iterations
+# Creating empty data structures to contain results of our RF evaluations
+rf_accuracy <- data.frame(accuracy=double(),fn=double(),fp=double(),
+                       data=character(),
+                       stringsAsFactors=FALSE)
+prediction_dataframe <- as.data.frame(odonata_hydroatlas_overlay)[,1:2]
+prediction_dataframe[,2]<-NA
+variable_importance <- data.frame(importance=double(),varnames=character(), stringsAsFactors=FALSE)
+
