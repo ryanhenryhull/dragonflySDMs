@@ -42,7 +42,7 @@ no_milfoil$prob<-no_milfoil$GBIF_Species/sum(no_milfoil$GBIF_Species)
 
 pseudo<-sample(1:nrow(no_milfoil),size=nrow(milfoil_qc), prob=no_milfoil$prob)
 
-rf_dat<-as.data.frame(rbind(no_milfoil[pseudo,-ncol(no_milfoil)],milfoil_qc))
+rf_dat<-as.data.frame(rbind(no_milfoil[pseudo,-ncol(no_milfoil)], milfoil_qc))
 
 ###Random forest predictions
 

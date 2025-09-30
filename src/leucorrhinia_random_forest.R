@@ -7,7 +7,7 @@
 # Based on: Lars Iversen milfoil experiment random forest code
 # -----------------------------------------------------------------------------
 
-# 1. Packages
+# 1. Libraries
 library(sf)
 library(ranger)
 library(rcompanion)
@@ -23,13 +23,54 @@ library(visreg)
 library(randomForest)
 
 # 2. Initial data processing
+rm(list=ls())
 odonata_hydroatlas_overlay <- st_read("data/odonata_hydroatlas_overlay.gpkg")
 
 intacta_presence_hydroatlas <- odonata_hydroatlas_overlay[which(odonata_hydroatlas_overlay$leucorrhinia_intacta==1),]
 intacta_absence_hydroatlas <- odonata_hydroatlas_overlay[which(odonata_hydroatlas_overlay$leucorrhinia_intacta==0),]
 
+# Calculate total number of observations across all PFAFs
+unique_pfafs_with_obs <- odonata_hydroatlas_overlay[
+  !duplicated(odonata_hydroatlas_overlay$PFAF_ID),
+  c("PFAF_ID","watershed_obs_count")] # result shows there were no duplicate PFAFs to begin with. makes sense
+nb_total_obs <- sum(odonata_hydroatlas_overlay$watershed_obs_count)
+
 # assigning weights to the absence watersheds based on dragonfly sampling effort:
-total_odonata_species <- ncol(odonata_hydroatlas_overlay) - 2
 intacta_absence_hydroatlas$prob <- 
   #intacta_absence_hydroatlas$GBIF_species_count/sum(no_milfoil$GBIF_species_count)
-  intacta_absence_hydroatlas$GBIF_species_count/total_odonata_species
+  intacta_absence_hydroatlas$watershed_obs_count/nb_total_obs
+
+# Select pseudoabsences randomly with the influence of assigned weight.
+# Select a number to match nb of presences
+set.seed(1080)
+intacta_pseudoabsences <-
+  sample(1:nrow(intacta_absence_hydroatlas),
+         size = nrow(intacta_presence_hydroatlas),
+         prob = intacta_absence_hydroatlas$prob)
+
+# Create dataframe used in RF
+intacta_rf <- as.data.frame(
+  rbind(intacta_absence_hydroatlas[intacta_pseudoabsences,-ncol(intacta_absence_hydroatlas)], # removes prob
+        intacta_presence_hydroatlas)
+)
+
+
+# 3. Random Forest Predictions
+number_watersheds_for_training <- floor(0.75 * nrow(intacta_rf))
+set.seed(849)
+training_indeces <- sample(seq_len(nrow(intacta_rf)), size = number_watersheds_for_training)
+
+training_watersheds <- intacta_rf[training_indeces,]
+test_watersheds <- intacta_rf[-training_indeces,]
+
+# running the RF to create trained model
+rf_model <-
+  randomForest(factor(leucorrhinia_intacta)~
+               pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
+               soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+               data = training_watersheds)
+
+# estimating accuracy:
+# need to create pred here
+predict(rf_model, test_watersheds)
+sum(pred$predictions==test$MyrSpic)/length(test$MyrSpic)
