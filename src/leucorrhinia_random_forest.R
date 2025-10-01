@@ -36,8 +36,16 @@ library(kernelshap)
 
 # 2. Initial data processing
 rm(list=ls())
-odonata_hydroatlas_overlay <- st_read("data/odonata_hydroatlas_overlay.gpkg")
+odonata_hydroatlas_overlay <- st_read("data/odonata_hydroatlas_overlay.gpkg") # note this includes an na col.... so its just some odonate I guess?
 
+# note we'd excluded watersheds w/o odonata obs, we must re-join them
+all_basins <- st_read("data/CAN_USA_atlas.gpkg")
+odonata_hydroatlas_overlay = odonata_hydroatlas_overlay[, c(1, 13:ncol(odonata_hydroatlas_overlay))]
+odonata_hydroatlas_overlay$geom <- NULL
+odonata_hydroatlas_overlay <- merge(all_basins, odonata_hydroatlas_overlay, by="PFAF_ID", all.x=TRUE)
+odonata_hydroatlas_overlay[is.na(odonata_hydroatlas_overlay)] <- 0
+
+# dividing based on presence/absence
 intacta_presence_hydroatlas <- odonata_hydroatlas_overlay[which(odonata_hydroatlas_overlay$leucorrhinia_intacta==1),]
 intacta_absence_hydroatlas <- odonata_hydroatlas_overlay[which(odonata_hydroatlas_overlay$leucorrhinia_intacta==0),]
 
@@ -45,7 +53,7 @@ intacta_absence_hydroatlas <- odonata_hydroatlas_overlay[which(odonata_hydroatla
 unique_pfafs_with_obs <- odonata_hydroatlas_overlay[
   !duplicated(odonata_hydroatlas_overlay$PFAF_ID),
   c("PFAF_ID","watershed_obs_count")] # result shows there were no duplicate PFAFs to begin with. makes sense
-nb_total_obs <- sum(odonata_hydroatlas_overlay$watershed_obs_count)
+nb_total_obs <- sum(odonata_hydroatlas_overlay$watershed_obs_count) # this checks out
 
 # assigning weights to the absence watersheds based on dragonfly sampling effort:
 intacta_absence_hydroatlas$prob <- 
@@ -61,21 +69,23 @@ intacta_pseudoabsences <-
          prob = intacta_absence_hydroatlas$prob)
 
 # Create dataframe used in RF
-intacta_rf <- as.data.frame(
+intacta_rf_df <- as.data.frame(
   rbind(intacta_absence_hydroatlas[intacta_pseudoabsences,-ncol(intacta_absence_hydroatlas)], # removes prob
         intacta_presence_hydroatlas))
 
 
 
 # 3. Initial Random Forest Predictions
-number_watersheds_for_training <- floor(0.75 * nrow(intacta_rf))
+number_watersheds_for_training <- floor(0.75 * nrow(intacta_rf_df))
 set.seed(849)
-training_indeces <- sample(seq_len(nrow(intacta_rf)), size = number_watersheds_for_training)
+training_indeces <- sample(seq_len(nrow(intacta_rf_df)), size = number_watersheds_for_training)
 
-training_watersheds <- intacta_rf[training_indeces,]
-test_watersheds <- intacta_rf[-training_indeces,]
+training_watersheds <- intacta_rf_df[training_indeces,]
+test_watersheds <- intacta_rf_df[-training_indeces,]
 
-# running the RF to create trained model
+# running the RF. This builds tons of decision trees using different combinations
+# of our parameters and different subsets of our data,
+# then combines them to make one averaged model.
 rf_model <-
   ranger(factor(leucorrhinia_intacta)~
                pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
@@ -86,17 +96,22 @@ rf_model <-
 pred <- predict(rf_model, test_watersheds)
 estimated_accuracy <- # proportion of correct classifications
   sum(pred$predictions==test_watersheds$leucorrhinia_intacta)/length(test_watersheds$leucorrhinia_intacta) 
+test_watersheds$prediction = pred$predictions
 
-false_positive_rate <- 
-  sum(as.numeric(pred$predictions[which(test_watersheds$Leucorrhinia_intacta==1)])-1)/
-  length(which(test_watersheds$leucorrhinia_intacta==1)) # note = 0... so model may be very strongly biased toward predicting absences
-false_negative_rate <-
+test = test_watersheds %>%
+  select(c("prediction", "leucorrhinia_intacta"))
+
+test$prediction <- as.numeric(test$prediction)
+
+
+
+# note as.numeric strangely converts factor of 0 and 1 to 1 and 2, hence our -1
+false_negative_rate <- # 0.91 is high...
+  sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==1)])-1)/
+  length(which(test_watersheds$leucorrhinia_intacta==1))
+false_positive_rate <- # 0.3 is ok
   sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==0)])-1)/
   length(which(test_watersheds$leucorrhinia_intacta==0))
-
-table(test_watersheds$leucorrhinia_intacta) # shows #absences and #presences for reference (each about 350)
-table(pred$predictions) # shows prediction predicts 400 presences 300 absences
-# prob some issue above
 
 
 
@@ -119,7 +134,8 @@ train(factor(leucorrhinia_intacta)~
         tuneGrid = tgrid,
         num.trees = 500,
         importance = "impurity")
-# the above spits out mtry=2, splitrule = gini, and min.mode.size = 10 as the optimal. use this later
+# the above spits out mtry=2, splitrule = gini, and min.mode.size = 10
+#as the optimal hyperparameters. use this later
 
 
 
@@ -129,11 +145,12 @@ train(factor(leucorrhinia_intacta)~
 rf_accuracy <- data.frame(accuracy=double(),fn=double(),fp=double(),
                        data=character(),
                        stringsAsFactors=FALSE)
-prediction_dataframe <- as.data.frame(odonata_hydroatlas_overlay)[,1:2]
-prediction_dataframe[,2]<-NA
+prediction_dataframe <- as.data.frame(odonata_hydroatlas_overlay)[,1]
 variable_importance <- data.frame(importance=double(),varnames=character(), stringsAsFactors=FALSE)
 
-# Run over 10? 100? 1000? iterations. I dont really understand the importance of this
+# Run over 10? 100? 1000? iterations. 
+# I dont really understand the importance of this
+# seed is not supposed to be set, but isn't it set earlier?
 for (i in 1:10){
   # the sampling part
   intacta_absence_hydroatlas$prob <- 
@@ -144,14 +161,14 @@ for (i in 1:10){
            size = nrow(intacta_presence_hydroatlas),
            prob = intacta_absence_hydroatlas$prob)
   
-  intacta_rf <- as.data.frame(
+  intacta_rf_df <- as.data.frame(
     rbind(intacta_absence_hydroatlas[intacta_pseudoabsences,-ncol(intacta_absence_hydroatlas)], # removes prob
           intacta_presence_hydroatlas))
   
-  number_watersheds_for_training <- floor(0.75 * nrow(intacta_rf))
-  training_indeces <- sample(seq_len(nrow(intacta_rf)), size = number_watersheds_for_training)
-  training_watersheds <- intacta_rf[training_indeces,]
-  test_watersheds <- intacta_rf[-training_indeces,]
+  number_watersheds_for_training <- floor(0.75 * nrow(intacta_rf_df))
+  training_indeces <- sample(seq_len(nrow(intacta_rf_df)), size = number_watersheds_for_training)
+  training_watersheds <- intacta_rf_df[training_indeces,]
+  test_watersheds <- intacta_rf_df[-training_indeces,]
   
   # running the model and evaluating it
   rf_model <-
@@ -169,7 +186,7 @@ for (i in 1:10){
   
   # FPRs and FNRs:
   rf_accuracy[i,2] <- 
-    sum(as.numeric(pred$predictions[which(test_watersheds$Leucorrhinia_intacta==1)])-1)/
+    sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==1)])-1)/
     length(which(test_watersheds$leucorrhinia_intacta==1))
   rf_accuracy[i,3] <-
     sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==0)])-1)/
@@ -212,7 +229,7 @@ for (i in 1:10){
 
 # accuracy
 accuracy_lm <- lm(accuracy~1, data=rf_accuracy)
-coef(accuracy_lm) #mean
+coef(accuracy_lm) # mean accuracy
 confint(accuracy_lm) # 95% confidence intervals
 
 # do the same for FP and FN
@@ -221,23 +238,31 @@ coef(fp_lm)
 confint(fp_lm)
 
 fn_lm <- lm(fn~1, data=rf_accuracy)
-coef(fp_lm)
-confint(fp_lm)
+coef(fn_lm) # strange...
+confint(fn_lm) # strange ...
 
 
 
 # 7. Predicting and projecting distributions
+#identical(odonata_hydroatlas_overlay$PFAF_ID, prediction_dataframe$PFAF_ID)
 
 odonata_hydroatlas_overlay$intacta_prediction <-
-  rowMeans(prediction_dataframe[,3:ncol(prediction_dataframe)]) # the first 2 columns are ________
+  rowMeans(prediction_dataframe[,2:ncol(prediction_dataframe)])
+
+summary(odonata_hydroatlas_overlay$intacta_prediction)
 
 # what proportion of total area is suitable? Estimation.
 # may need a gpkg col I dont have. also whats the point of this
 
 # plotting probability of species presence
+
+# the following may help depth error
+odonata_hydroatlas_overlay <- st_make_valid(odonata_hydroatlas_overlay)
+
 intacta_model1 <- ggplot() +
-  geom_sf(data = odonata_hydroatlas_overlay, aes(fill = intacta_prediction), colour=NA,) +
-  scale_fill_viridis_c(limits = c(0, 1), name = "name_foo_bar_?") +
+  geom_sf(data = odonata_hydroatlas_overlay, aes(fill = intacta_prediction, colour=intacta_prediction)) +
+  scale_fill_viridis() +
+  scale_colour_viridis()+
   theme_bw() +
   theme(legend.position = c(0.87, 0.8))
 intacta_model1
@@ -262,7 +287,7 @@ intacta_var_imp_plot
 rf_to_visualize_predictors <- randomForest(factor(leucorrhinia_intacta)~
       pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
       soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
-      data = intacta_rf,
+      data = intacta_rf_df,
       probability = TRUE,
       mtry = 2,
       min.node.size = 10)

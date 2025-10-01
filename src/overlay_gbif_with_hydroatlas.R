@@ -41,6 +41,7 @@ st_crs(all_odonata_obs)
 
 # Keep only watershed IDs where one of our observations is found
 # note there could still be multiple rows per PFAF
+# or... maybe keep all PFAFs...?
 odonata_obs_with_hydroatlas <- st_join(CAN_USA_atlas, all_odonata_obs_sf, left=FALSE)
 
 # tally number of observations per PFAF and include it as a column
@@ -61,8 +62,11 @@ odonata_obs_with_hydroatlas_long <-
   ) |>
   clean_names() # replace spaces with _ in colnames
 
-odonata_obs_with_hydroatlas_long <- odonata_obs_with_hydroatlas_long %>%
-  rename(PFAF_ID = pfaf_id)
+odonata_obs_with_hydroatlas_long <- dplyr::rename(
+  odonata_obs_with_hydroatlas_long,
+  PFAF_ID = pfaf_id)
+  
+  
 
 # how many different species per PFAF?
 odonata_obs_with_hydroatlas_long$GBIF_species_count <-
@@ -93,8 +97,8 @@ odonata_obs_with_hydroatlas_final$coordinateUncertaintyInMeters <- NULL
 odonata_obs_with_hydroatlas_final$day <- NULL
 odonata_obs_with_hydroatlas_final$month <- NULL
 odonata_obs_with_hydroatlas_final$year <- NULL
-odonata_obs_with_hydroatlas_final$geom <- NULL
 
 
 # 5. Writing out our new file# 5. Writing out our newNULL file
-st_write(odonata_obs_with_hydroatlas_final, "data/odonata_hydroatlas_overlay.gpkg")
+st_write(odonata_obs_with_hydroatlas_final, "data/odonata_hydroatlas_overlay.gpkg",
+         append=FALSE) # to provide rewrite permission if file is already there
