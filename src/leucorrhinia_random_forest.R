@@ -7,6 +7,8 @@
 # Based on: Lars Iversen milfoil experiment random forest code
 # -----------------------------------------------------------------------------
 
+
+
 # 1. Libraries
 library(sf)
 library(ggplot2)
@@ -29,6 +31,8 @@ library(randomForest)
 library(rcompanion)
 #install.packages("kernelshap", type = "binary", repos = "https://cloud.r-project.org/")
 library(kernelshap)
+
+
 
 # 2. Initial data processing
 rm(list=ls())
@@ -59,8 +63,8 @@ intacta_pseudoabsences <-
 # Create dataframe used in RF
 intacta_rf <- as.data.frame(
   rbind(intacta_absence_hydroatlas[intacta_pseudoabsences,-ncol(intacta_absence_hydroatlas)], # removes prob
-        intacta_presence_hydroatlas)
-)
+        intacta_presence_hydroatlas))
+
 
 
 # 3. Initial Random Forest Predictions
@@ -117,7 +121,9 @@ train(factor(leucorrhinia_intacta)~
         importance = "impurity")
 # the above spits out mtry=2, splitrule = gini, and min.mode.size = 10 as the optimal. use this later
 
-# 5. Evaluating this tuned model over multiple iterations
+
+
+# 5. Runnning tuned model over multiple iterations
 
 # Creating empty data structures to contain results of our RF evaluations
 rf_accuracy <- data.frame(accuracy=double(),fn=double(),fp=double(),
@@ -178,13 +184,10 @@ for (i in 1:10){
   # adding it to the larger importance table
   variable_importance <- rbind(variable_importance, iteration_importance)
   
-  
-  
   # The previous RF was useful for training whether to classify a watershed
   # as 1 or 0 (presence/absence). Tells us about accuracy, FPRs, FNRs, var imp.
   # But we cannot use this for mapping - we need a probability of pres/absence.
   # That is what the following RF does
-  
   probability_rf_model <- 
     ranger(factor(leucorrhinia_intacta)~
           pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
@@ -198,7 +201,86 @@ for (i in 1:10){
   spatial_prediction <- predict(probability_rf_model,
                                 as.data.frame(odonata_hydroatlas_overlay))
   
-  # add to big prediction dataframe
+  # add this iteration to big prediction dataframe
   prediction_dataframe <- cbind(prediction_dataframe,
                                 spatial_prediction$predictions[,2]) # from lars
 }
+
+
+
+# 6. Evaluating average performance after multiple iterations
+
+# accuracy
+accuracy_lm <- lm(accuracy~1, data=rf_accuracy)
+coef(accuracy_lm) #mean
+confint(accuracy_lm) # 95% confidence intervals
+
+# do the same for FP and FN
+fp_lm <- lm(fp~1, data=rf_accuracy)
+coef(fp_lm)
+confint(fp_lm)
+
+fn_lm <- lm(fn~1, data=rf_accuracy)
+coef(fp_lm)
+confint(fp_lm)
+
+
+
+# 7. Predicting and projecting distributions
+
+odonata_hydroatlas_overlay$intacta_prediction <-
+  rowMeans(prediction_dataframe[,3:ncol(prediction_dataframe)]) # the first 2 columns are ________
+
+# what proportion of total area is suitable? Estimation.
+# may need a gpkg col I dont have. also whats the point of this
+
+# plotting probability of species presence
+intacta_model1 <- ggplot() +
+  geom_sf(data = odonata_hydroatlas_overlay, aes(fill = intacta_prediction), colour=NA,) +
+  scale_fill_viridis_c(limits = c(0, 1), name = "name_foo_bar_?") +
+  theme_bw() +
+  theme(legend.position = c(0.87, 0.8))
+intacta_model1
+
+# Visualizing variable importance:
+intacta_var_imp <- as.data.frame(coef(lm(importance~-1+varnames,data = variable_importance)))
+intacta_var_imp$varnames <- rownames(intacta_var_imp) # row names to column
+rownames(intacta_var_imp) <- NULL  
+colnames(intacta_var_imp)[1] <- "Importance"
+
+intacta_var_imp_plot <-
+  ggplot(intacta_var_imp, aes(x=reorder(varnames, Importance), weight=Importance)) +
+  geom_bar() +
+  ylab("Variable Importance") + 
+  xlab("Variable Name") +
+  coord_flip() + theme(legend.position = "none") +
+  scale_fill_viridis(discrete = TRUE) +
+  theme_classic() + theme(legend.position = "none")
+intacta_var_imp_plot
+
+# How do our predictors influence the presence probability? Visualization.
+rf_to_visualize_predictors <- randomForest(factor(leucorrhinia_intacta)~
+      pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
+      soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+      data = intacta_rf,
+      probability = TRUE,
+      mtry = 2,
+      min.node.size = 10)
+
+# ask lars... which ones should I choose??
+v1<- visreg(fit_m, "pre_mm_syr", partial=FALSE, rug=FALSE, gg=TRUE)+
+  theme_classic()
+
+v2<- visreg(fit_m, "tmp_dc_syr", partial=FALSE, rug=FALSE, gg=TRUE)+
+  theme_classic()
+
+v3<- visreg(fit_m, "ele_mt_sav",  partial=FALSE, rug=FALSE, gg=TRUE)+
+  theme_classic()
+
+v4<- visreg(fit_m, "slp_dg_sav", partial=FALSE, rug=FALSE, gg=TRUE)+
+  theme_classic()
+
+v5<- visreg(fit_m, "ari_ix_sav", partial=FALSE, rug=FALSE, gg=TRUE)+
+  theme_classic()
+
+grid.arrange(v1,v2,v3,v4,v5,ncol=1)
