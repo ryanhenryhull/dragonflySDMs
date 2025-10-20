@@ -89,7 +89,7 @@ test_watersheds <- intacta_rf_df[-training_indeces,]
 rf_model <-
   ranger(factor(leucorrhinia_intacta)~
                pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-               soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+               soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
                data = training_watersheds)
 
 # estimating accuracy:
@@ -128,7 +128,7 @@ tgrid <- expand.grid(
 # performance to learn best hyperparameter combinations
 train(factor(leucorrhinia_intacta)~
         pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-        soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+        soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr
         data = training_watersheds,
         method = "ranger",
         tuneGrid = tgrid,
@@ -174,7 +174,7 @@ for (i in 1:10){
   rf_model <-
     ranger(factor(leucorrhinia_intacta)~
              pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-             soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+             soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
            data = training_watersheds)
   
   pred <- predict(rf_model, test_watersheds)
@@ -208,7 +208,7 @@ for (i in 1:10){
   probability_rf_model <- 
     ranger(factor(leucorrhinia_intacta)~
           pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-          soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+          soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
           data = training_watersheds,
           importance = "impurity",
           mtry = 2, #from what our training suggested
@@ -263,9 +263,11 @@ intacta_model1 <- ggplot() +
   geom_sf(data = odonata_hydroatlas_overlay, aes(fill = intacta_prediction, colour=intacta_prediction)) +
   scale_fill_viridis() +
   scale_colour_viridis()+
-  theme_bw() +
-  theme(legend.position = c(0.87, 0.8))
+  theme_bw()
 intacta_model1
+
+ggsave(intacta_model1, filename="outputs/intacta_map.png")
+
 
 # Visualizing variable importance:
 intacta_var_imp <- as.data.frame(coef(lm(importance~-1+varnames,data = variable_importance)))
@@ -286,7 +288,7 @@ intacta_var_imp_plot
 # How do our predictors influence the presence probability? Visualization.
 rf_to_visualize_predictors <- randomForest(factor(leucorrhinia_intacta)~
       pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-      soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj,
+      soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
       data = intacta_rf_df,
       probability = TRUE,
       mtry = 2,

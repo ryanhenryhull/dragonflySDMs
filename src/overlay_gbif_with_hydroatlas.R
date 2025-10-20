@@ -13,27 +13,20 @@ library("tidyr")
 library("janitor")
 sf::sf_use_s2(FALSE) # to work on a flat earth - ask lars about this
 
-# 2. Reading in species observations containing coordinates and convert them to sf:
+# 2. Reading in data. Convert species obs to sf:
 rm(list=ls())
-intacta_obs <- read.csv("data/intacta_obs.csv")
-intacta_obs_sf <- st_as_sf(
-  intacta_obs,
-  coords = c("decimalLongitude", "decimalLatitude"),
-  crs = 4326 # the standard coord system
-)
 
-all_odonata_obs <- read.csv("data/all_odonata_obs.csv")
+all_odonata_obs <- read.csv("data/all_odonata_obs_clean.csv")
 all_odonata_obs_sf <- st_as_sf(
   all_odonata_obs,
   coords = c("decimalLongitude", "decimalLatitude"),
   crs = 4326 # the standard coord system
 )
 
-# 3. Reading in the hydroatlas data:
 CAN_USA_atlas <- st_read("data/CAN_USA_atlas.gpkg")
 
 
-# 4. Overlaying the observations on the hydroatlas
+# 3. Overlaying the observations on the hydroatlas
 
 # Do they use the same crs?
 st_crs(CAN_USA_atlas)
@@ -66,11 +59,10 @@ odonata_obs_with_hydroatlas_long <- dplyr::rename(
   odonata_obs_with_hydroatlas_long,
   PFAF_ID = pfaf_id)
   
-  
 
 # how many different species per PFAF?
 odonata_obs_with_hydroatlas_long$GBIF_species_count <-
-  rowSums(odonata_obs_with_hydroatlas_long[, 2:474])
+  rowSums(odonata_obs_with_hydroatlas_long[, 2:322]) ## hard coded 322 #species here.
 
 
 # Adding back in columns of interest 
@@ -99,6 +91,6 @@ odonata_obs_with_hydroatlas_final$month <- NULL
 odonata_obs_with_hydroatlas_final$year <- NULL
 
 
-# 5. Writing out our new file# 5. Writing out our newNULL file
+# 4. Writing out our new file
 st_write(odonata_obs_with_hydroatlas_final, "data/odonata_hydroatlas_overlay.gpkg",
          append=FALSE) # to provide rewrite permission if file is already there
