@@ -38,7 +38,7 @@ library(kernelshap)
 rm(list=ls())
 odonata_hydroatlas_overlay <- st_read("data/odonata_hydroatlas_overlay.gpkg") # note this includes an na col.... so its just some odonate I guess?
 
-# note we'd excluded watersheds w/o odonata obs, we must re-join them
+# We'd excluded watersheds w/o odonata obs, we must re-join them
 all_basins <- st_read("data/CAN_USA_atlas.gpkg")
 odonata_hydroatlas_overlay = odonata_hydroatlas_overlay[, c(1, 13:ncol(odonata_hydroatlas_overlay))]
 odonata_hydroatlas_overlay$geom <- NULL

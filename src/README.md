@@ -3,24 +3,22 @@ title: "README"
 output: html_document
 ---
 
-# Providing order to these scripts
+# What's in src/ ?
 
-## 1. full_odonata_gbif_processing.R
-To process all USA/CAN dragonfly observations.
-Note leucorrhinia_gbif_processing.R was a previous version for just the family
-comparing_intacta_mydownload_larsdownload.R was cause I was skeptical about
-the difference between our two downloads.
+These files will not be ran directly. They will either be called by scripts/, or are simply versions of code that won't be used in the main process.
 
-## 2. overay_gbif_with_hydroatlas.R
+## leucorrhinia_gbif_processing.R
 
-## 3. The random forest scripts
+A previous version of scripts/01_full_odonata_gbif_processing for just the family
 
-Iversen_milfoil_rf_short.R was Prof. Iversen's code from a previous study
-leucorrhinia_random_forest.R was the first run at RF using a well observed whiteface
+## comparing_intacta_mydownload_larsdownload.R
 
-setting_rf_hyperparameters.R to find a middle ground rf hyperparamaterization
-before we run the model over all dragonflies.
+I was skeptical about the difference between our two downloads
 
-odonata_randomforest_loop.R to run the model over all qualifying odonates
+## Iversen_milfoil_rf_short.R
 
+Prof. Iversen's rf code from a previous study
 
+## leucorrhinia_random_forest.R
+
+The first run at RF using a well observed whiteface

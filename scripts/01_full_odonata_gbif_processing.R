@@ -16,7 +16,7 @@ library(dplyr)
 
 
 # 2. Data cleaning
-all_odonata_obs <- read_tsv("data/gbif_NA_odonata.csv")
+all_odonata_obs <- read_tsv("data/raw/gbif_NA_odonata.csv")
 
 # keep useful columns
 all_odonata_obs <- all_odonata_obs[c("gbifID","order","family","genus","species",
@@ -51,7 +51,7 @@ species_counts <- all_odonata_obs %>%
   group_by(species) %>%
   summarise(observations = n())   # count rows per species
 
-qualified_species <- species_counts[species_counts$observations>=99,]
+qualified_species <- species_counts[species_counts$observations>=100,]
 
 # opportunity for making cool visual here. Potentially collapsibletree.......... could be really cool
 
@@ -77,5 +77,5 @@ qualified_odonata_obs <- rename(qualified_odonata_obs, species_obs_count = obser
 
 # 5. Writing out data
 
-write.csv(qualified_odonata_obs, "data/all_odonata_obs_clean.csv", row.names=FALSE)
-write.csv(qualified_species, "data/odonata_species_list_with_obs.csv", row.names=FALSE)
+write.csv(qualified_odonata_obs, "data/processed/all_odonata_obs_clean.csv", row.names=FALSE)
+write.csv(qualified_species, "data/processed/odonata_species_list_with_obs.csv", row.names=FALSE)
