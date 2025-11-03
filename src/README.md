@@ -22,3 +22,7 @@ Prof. Iversen's rf code from a previous study
 ## leucorrhinia_random_forest.R
 
 The first run at RF using a well observed whiteface
+
+## creating_rf_df
+Given a large GBIF obs - hydroatlas overlay, trims down to given species of
+interest and prepares dataframe to be used in RF model.

@@ -16,21 +16,21 @@ sf::sf_use_s2(FALSE) # to work on a flat earth - ask lars about this
 # 2. Reading in data. Convert species obs to sf:
 rm(list=ls())
 
-all_odonata_obs <- read.csv("data/all_odonata_obs_clean.csv")
+all_odonata_obs <- read.csv("data/processed/all_odonata_obs_clean.csv")
 all_odonata_obs_sf <- st_as_sf(
   all_odonata_obs,
   coords = c("decimalLongitude", "decimalLatitude"),
   crs = 4326 # the standard coord system
 )
 
-CAN_USA_atlas <- st_read("data/CAN_USA_atlas.gpkg")
+CAN_USA_atlas <- st_read("data/raw/CAN_USA_atlas.gpkg")
 
 
 # 3. Overlaying the observations on the hydroatlas
 
 # Do they use the same crs?
 st_crs(CAN_USA_atlas)
-st_crs(all_odonata_obs)
+st_crs(all_odonata_obs_sf)
 
 # Keep only watershed IDs where one of our observations is found
 # note there could still be multiple rows per PFAF
@@ -62,7 +62,7 @@ odonata_obs_with_hydroatlas_long <- dplyr::rename(
 
 # how many different species per PFAF?
 odonata_obs_with_hydroatlas_long$GBIF_species_count <-
-  rowSums(odonata_obs_with_hydroatlas_long[, 2:322]) ## hard coded 322 #species here.
+  rowSums(odonata_obs_with_hydroatlas_long[, 2:319]) ## hard coded 319 #species here.
 
 
 # Adding back in columns of interest 
@@ -92,5 +92,5 @@ odonata_obs_with_hydroatlas_final$year <- NULL
 
 
 # 4. Writing out our new file
-st_write(odonata_obs_with_hydroatlas_final, "data/odonata_hydroatlas_overlay.gpkg",
+st_write(odonata_obs_with_hydroatlas_final, "data/processed/odonata_hydroatlas_overlay.gpkg",
          append=FALSE) # to provide rewrite permission if file is already there
