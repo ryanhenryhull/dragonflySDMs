@@ -16,7 +16,6 @@ library(ggplot2)
 hydroatlas <- read_sf("C:/Users/Dell/OneDrive - McGill University/IversenLab_Group - HydroATLAS/BasinATLAS_v10_shp/BasinATLAS_v10_lev12.shp")
 
 
-
 # 3. Filtering
 #Canada GADM ID = 41 
 #United States GADM ID = 240

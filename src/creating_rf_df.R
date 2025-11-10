@@ -5,12 +5,9 @@
 #          one species of interest
 # -----------------------------------------------------------------------------
 
-
-
-
 # Inputs:
 #   A GBIF/Hydroatlas overlay with many species, watershed_obs_count column
-#   Name of column for species of interestà
+#   Name of column for species of interest
 #
 # Outputs:
 #   dataframe ready to run RF
@@ -21,8 +18,8 @@ create_rf_dataframe <- function(overlay, species_name){
   nb_total_obs <- sum(overlay$watershed_obs_count)
   
   # dividing based on presence/absence
-  species_presence_hydroatlas <- overlay[which(overlay$species_name==1),]
-  species_absence_hydroatlas <- overlay[which(overlay$species_name==0),]
+  species_presence_hydroatlas <- overlay[which(overlay[[species_name]]==1),]
+  species_absence_hydroatlas <- overlay[which(overlay[[species_name]]==0),]
   
   # assigning weights to the absence watersheds based on dragonfly sampling effort:
   species_absence_hydroatlas$prob <- 

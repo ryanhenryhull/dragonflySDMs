@@ -1,9 +1,8 @@
 # -----------------------------------------------------------------------------
-# Author: Ryan Hull
-# Date: September 2025
-# Purpose: Run random forest model to assess habitat suitability of north
-# american whitefaces
-# Output: 
+# Author:   Ryan Hull
+# Date:     September 2025
+# Purpose:  Run random forest model to assess habitat suitability of north
+#           american whitefaces
 # Based on: Lars Iversen milfoil experiment random forest code
 # -----------------------------------------------------------------------------
 
@@ -30,6 +29,7 @@ library(randomForest)
 library(rcompanion)
 #install.packages("kernelshap", type = "binary", repos = "https://cloud.r-project.org/")
 library(kernelshap)
+
 
 
 
@@ -74,6 +74,7 @@ intacta_rf_df <- as.data.frame(
 
 
 
+
 # 3. Initial Random Forest Predictions
 number_watersheds_for_training <- floor(0.75 * nrow(intacta_rf_df))
 set.seed(849)
@@ -101,8 +102,6 @@ test = test_watersheds %>%
   select(c("prediction", "leucorrhinia_intacta"))
 
 test$prediction <- as.numeric(test$prediction)
-
-
 
 # note as.numeric strangely converts factor of 0 and 1 to 1 and 2, hence our -1
 false_negative_rate <- # 0.91 is high...
@@ -135,6 +134,7 @@ train(factor(leucorrhinia_intacta)~
         importance = "impurity")
 # the above spits out mtry=2, splitrule = gini, and min.mode.size = 10
 #as the optimal hyperparameters. use this later
+
 
 
 
@@ -224,6 +224,7 @@ for (i in 1:10){
 
 
 
+
 # 6. Evaluating average performance after multiple iterations
 
 # accuracy
@@ -239,6 +240,7 @@ confint(fp_lm)
 fn_lm <- lm(fn~1, data=rf_accuracy)
 coef(fn_lm) # strange...
 confint(fn_lm) # strange ...
+
 
 
 
