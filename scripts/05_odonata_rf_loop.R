@@ -70,7 +70,10 @@ odonata_hydroatlas_overlay <- odonata_hydroatlas_overlay[
 
 for (species in species_list$species){
   
+  # Create dataframe to be used in random forest model
   species_rf_df <- create_rf_dataframe(odonata_hydroatlas_overlay, species)
+  
+  # Obtain results from running rf ten times with different training/test data
   
   results_question_mark <-
     run_rf_for_one_species(species_rf_df, optimal_mtry, optimal_splitrule,

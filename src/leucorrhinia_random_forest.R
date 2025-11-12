@@ -35,10 +35,10 @@ library(kernelshap)
 
 # 2. Initial data processing
 rm(list=ls())
-odonata_hydroatlas_overlay <- st_read("data/odonata_hydroatlas_overlay.gpkg") # note this includes an na col.... so its just some odonate I guess?
+odonata_hydroatlas_overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg") # note this includes an na col.... so its just some odonate I guess?
 
 # We'd excluded watersheds w/o odonata obs, we must re-join them
-all_basins <- st_read("data/CAN_USA_atlas.gpkg")
+all_basins <- st_read("data/raw/CAN_USA_atlas.gpkg")
 odonata_hydroatlas_overlay = odonata_hydroatlas_overlay[, c(1, 13:ncol(odonata_hydroatlas_overlay))]
 odonata_hydroatlas_overlay$geom <- NULL
 odonata_hydroatlas_overlay <- merge(all_basins, odonata_hydroatlas_overlay, by="PFAF_ID", all.x=TRUE)
@@ -138,7 +138,7 @@ train(factor(leucorrhinia_intacta)~
 
 
 
-# 5. Runnning tuned model over multiple iterations
+# 5. Running tuned model over multiple iterations
 
 # Creating empty data structures to contain results of our RF evaluations
 rf_accuracy <- data.frame(accuracy=double(),fn=double(),fp=double(),
@@ -148,7 +148,7 @@ prediction_dataframe <- as.data.frame(odonata_hydroatlas_overlay)[,1]
 variable_importance <- data.frame(importance=double(),varnames=character(), stringsAsFactors=FALSE)
 
 # Run over 10? 100? 1000? iterations. 
-# I dont really understand the importance of this
+# Important cause makes different random selections of training/test
 # seed is not supposed to be set, but isn't it set earlier?
 for (i in 1:10){
   # the sampling part
