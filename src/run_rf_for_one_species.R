@@ -8,27 +8,34 @@
 
 
 # Inputs:
+#   species_name
 #   species_rf_df: the output of src/creating_rf_df
+#   optimal hyperparameters
 # Outputs:
-#   a table containing accuracy, false positive rate, false negative rate,
+#   species_rf_results: a table containing accuracy,
+#                       false positive rate, false negative rate,
+#   species_variable_importance: table showing each hydroatlas variable's 
+#                                importance in the model
+#   species_prediction_dataframe: will show prob. for each PFAF 
 
 
 
 
-run_rf_for_one_species <- function(species_rf_df, optimal_mtry,
+run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
                                    optimal_splitrule, optimal_min_node_size){
   
   
   
   
   # 1. Creating empty data structures to contain results of our RF evaluations
-  rf_accuracy <- data.frame(accuracy=double(),fn=double(),fp=double(),
-                            data=character(),
+  rf_accuracy <- data.frame(species_name = character(), accuracy=double(),
+                            fn=double(),fp=double(),
                             stringsAsFactors=FALSE)
   prediction_dataframe <- as.data.frame(odonata_hydroatlas_overlay)[,1] # PFAF column
-  variable_importance <- data.frame(importance=double(),varnames=character(), stringsAsFactors=FALSE)
-  
-  species_name <- ...
+  variable_importance <- data.frame(species_name = character(),
+                                    importance=double(),
+                                    varnames=character(),
+                                    stringsAsFactors=FALSE)
   
   
   
@@ -51,31 +58,34 @@ run_rf_for_one_species <- function(species_rf_df, optimal_mtry,
             snw_pc_syr+for_pc_sse+sgr_dk_sav+aet_mm_syr+crp_pc_sse,
             data = training_watersheds,
             mtry = optimal_mtry,
-            splitrul = optimal_splitrule,
+            splitrule = optimal_splitrule,
             min.node.size = optimal_min_node_size,
-            probability = FALSE)
+            probability = FALSE,
+            importance = "impurity")
     
     pred <- predict(rf_model, test_watersheds)
     
     # assessing accuracy
-    rf_accuracy[i,1] <- sum(pred$predictions==test_watersheds$leucorrhinia_intacta)/
-      length(test_watersheds$leucorrhinia_intacta) 
-    rf_accuracy[i,4] <- "name_foo_bar"
+    rf_accuracy[i,1] <- species_name
+    rf_accuracy[i,2] <- sum(pred$predictions==test_watersheds$leucorrhinia_intacta)/
+      length(test_watersheds$leucorrhinia_intacta)
     
     # FPRs and FNRs:
-    rf_accuracy[i,2] <- 
+    rf_accuracy[i,3] <- 
       sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==1)])-1)/
       length(which(test_watersheds$leucorrhinia_intacta==1))
-    rf_accuracy[i,3] <-
+    rf_accuracy[i,4] <-
       sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==0)])-1)/
       length(which(test_watersheds$leucorrhinia_intacta==0))
     
     # assessing variable importance
     # getting the values for this iteration
     iteration_importance <- as.data.frame(rf_model$variable.importance)
-    iteration_importance$varnames <- rownames(iteration_importance)
+    iteration_importance$varnames <- rownames(iteration_importance) # turn the vars from row names to a column of values
     rownames(iteration_importance) <- NULL
     colnames(iteration_importance)[1] <- "importance"
+    iteration_importance$species_name = species_name
+    iteration_importance <- iteration_importance[, c("species_name","varnames","importance")] # reorder cols
     # adding it to the larger importance table
     variable_importance <- rbind(variable_importance, iteration_importance)
     
@@ -104,7 +114,8 @@ run_rf_for_one_species <- function(species_rf_df, optimal_mtry,
   
   
   
-  # 3. Process rf performance results
+  # 3. Process rf results
+
   species_rf_performance_results <- data.frame(
     species = character(),
     mean_accuracy = double(),
@@ -117,20 +128,10 @@ run_rf_for_one_species <- function(species_rf_df, optimal_mtry,
     fp_2.5_CI = double(),
     fp_97.5_CI = double(),)
   
-  # accuracy
+  # accuracy, false positives, false negatives based on the non-probability rfs
   accuracy_lm <- lm(accuracy~1, data=rf_accuracy)
-  coef(accuracy_lm) # mean accuracy
-  confint(accuracy_lm) # 2.5 and 97.5% confidence intervals
-  
-  # false positives
   fp_lm <- lm(fp~1, data=rf_accuracy)
-  coef(fp_lm)
-  confint(fp_lm)
-  
-  # false negatives
   fn_lm <- lm(fn~1, data=rf_accuracy)
-  coef(fn_lm)
-  confint(fn_lm)
   
   # assign values
   species_rf_results$species <- species_name
@@ -144,41 +145,30 @@ run_rf_for_one_species <- function(species_rf_df, optimal_mtry,
   species_rf_results$fp_2.5_CI <- confint(fp_lm)[1,1]
   species_rf_results$fp_97.5_CI <- confint(fp_lm)[1,2]
   
-  
-  
-  
-  # 4. Process variable importance results
-  species_variable_importance <- data.frame(
-    species = character(), varnames = character(), mean_importance = double()
-  )
-  
-  
-  
-  
-  # 5. Process spatial prediction results
+  # Process spatial prediction results
   species_prediction_dataframe <- data.frame(
     species = species_name,
     PFAF = prediction_dataframe$prediction_dataframe,
     mean_prediction = rowMeans(prediction_dataframe[,2:ncol(prediction_dataframe)])
   )
+  
+  # for variable importance, simply return what the above loop provides
     
   
   
   
-  # 6. Return results
-  
+  # 4. Return results
+  return(list(species_rf_results = species_rf_results,
+              species_variable_importance = species_variable_importance,
+              species_prediction_dataframe = species_prediction_dataframe))
 }
 
-# up next: see if we need variable importance, and find way to return map
-# into an organized folder structure with following code
+# note the visualization of what PFAFs produce good predictions 
+# (from prediction dataframe) will be best done with table produced from combination
+# with all species
 
-odonata_hydroatlas_overlay <- st_make_valid(odonata_hydroatlas_overlay)
+# the range maps themselves we can make for each species individually based on 
+# species_rf_results in some other loop if we wish
 
-intacta_model1 <- ggplot() +
-  geom_sf(data = odonata_hydroatlas_overlay, aes(fill = intacta_prediction, colour=intacta_prediction)) +
-  scale_fill_viridis() +
-  scale_colour_viridis()+
-  theme_bw()
-intacta_model1
-
-ggsave(intacta_model1, filename="outputs/intacta_map.png")
+# variable importance - prob wanna do average across species, lets do that in
+# another script

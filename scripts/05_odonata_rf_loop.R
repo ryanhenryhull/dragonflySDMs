@@ -5,6 +5,9 @@
 # over all qualifying USA/CAN odonates
 # -----------------------------------------------------------------------------
 
+
+
+
 # 1. Libraries
 rm(list=ls())
 library(ggplot2)
@@ -38,7 +41,6 @@ optimal_mtry = hyperparameterization[hyperparameterization$species=="optimal", "
 optimal_splitrule = hyperparameterization[hyperparameterization$species=="optimal", "splitrule"]
 optimal_min_node_size = hyperparameterization[hyperparameterization$species=="optimal", "min_node_size"]
 
-
 # Set up overlay for rf
 # re-join watersheds w/o odonata obs 
 all_basins <- st_read("data/raw/CAN_USA_atlas.gpkg") # this has the env. vars., IDs, and geom
@@ -70,14 +72,23 @@ odonata_hydroatlas_overlay <- odonata_hydroatlas_overlay[
 
 for (species in species_list$species){
   
+  species_name = species
+  
   # Create dataframe to be used in random forest model
   species_rf_df <- create_rf_dataframe(odonata_hydroatlas_overlay, species)
   
   # Obtain results from running rf ten times with different training/test data
+  species_results <-
+    run_rf_for_one_species(species_name, species_rf_df, optimal_mtry,
+                           optimal_splitrule, optimal_min_node_size)
   
-  results_question_mark <-
-    run_rf_for_one_species(species_rf_df, optimal_mtry, optimal_splitrule,
-                           optimal_min_node_size)
+  # from function:
+  # 4. Return results
+  #return(list(species_rf_results = species_rf_results,
+  #            species_variable_importance = species_variable_importance,
+  #            species_prediction_dataframe = species_prediction_dataframe))
+  species_
+  # continue here....
   
   
 }

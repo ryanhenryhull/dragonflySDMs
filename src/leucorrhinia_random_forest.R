@@ -174,14 +174,18 @@ for (i in 1:10){
     ranger(factor(leucorrhinia_intacta)~
              pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
              soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
-           data = training_watersheds)
+           data = training_watersheds,
+           importance = "impurity",
+           mtry = 2, 
+           min.node.size = 10,
+           probability = FALSE)
   
   pred <- predict(rf_model, test_watersheds)
   
   # assessing accuracy
   rf_accuracy[i,1] <- sum(pred$predictions==test_watersheds$leucorrhinia_intacta)/
     length(test_watersheds$leucorrhinia_intacta) 
-  rf_accuracy[i,4] <- "name_foo_bar"
+  rf_accuracy[i,4] <- "name_foo_bar" # "QC" in milfoil script... likely not important
   
   # FPRs and FNRs:
   rf_accuracy[i,2] <- 
