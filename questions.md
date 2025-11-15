@@ -11,3 +11,6 @@ what numbers to choose? We've increased the number of parameters now.
 most frequent combination is mtry=5, nodesize=5
 but is this an optimal middleground? should I take the most frequent of each
 individually?
+
+## false positives and negatives
+not sure I understand the code, and one is off.

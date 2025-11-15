@@ -31,11 +31,17 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
   rf_accuracy <- data.frame(species_name = character(), accuracy=double(),
                             fn=double(),fp=double(),
                             stringsAsFactors=FALSE)
-  prediction_dataframe <- as.data.frame(odonata_hydroatlas_overlay)[,1] # PFAF column
+  prediction_dataframe <- as.data.frame(odonata_hydroatlas_overlay)[,1, drop=FALSE] # PFAF column
+  colnames(prediction_dataframe) <- "PFAF"
   variable_importance <- data.frame(species_name = character(),
                                     importance=double(),
                                     varnames=character(),
                                     stringsAsFactors=FALSE)
+  
+  hydroatlas_variables <-
+    c("pre_mm_syr","ele_mt_sav","slp_dg_sav","ari_ix_sav","tmp_dc_syr","snd_pc_sav",
+        "soc_th_sav","wet_cl_smj","lka_pc_sse","dis_m3_pyr","gad_id_smj",
+        "snw_pc_syr","for_pc_sse","sgr_dk_sav","aet_mm_syr","crp_pc_sse")
   
   
   
@@ -47,36 +53,38 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
     number_watersheds_for_training <- floor(0.75 * nrow(species_rf_df))
     training_indeces <- sample(seq_len(nrow(species_rf_df)),
                                size = number_watersheds_for_training)
-    training_watersheds <- intacta_rf_df[training_indeces,]
-    test_watersheds <- intacta_rf_df[-training_indeces,]
+    training_watersheds <- species_rf_df[training_indeces,]
+    test_watersheds <- species_rf_df[-training_indeces,]
     
     # running the model and evaluating it
     rf_model <-
-      ranger(factor(species_name)~ # may need to paste actual name?
-            pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-            soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr+gad_id_smj+
-            snw_pc_syr+for_pc_sse+sgr_dk_sav+aet_mm_syr+crp_pc_sse,
-            data = training_watersheds,
-            mtry = optimal_mtry,
-            splitrule = optimal_splitrule,
-            min.node.size = optimal_min_node_size,
-            probability = FALSE,
-            importance = "impurity")
+      ranger(
+        formula = as.formula(
+          paste0("factor(", species_name, ") ~ ",
+                 paste(hydroatlas_variables, collapse = "+")
+          )
+        ),
+        data = training_watersheds,
+        mtry = optimal_mtry,
+        splitrule = optimal_splitrule,
+        min.node.size = optimal_min_node_size,
+        probability = FALSE,
+        importance = "impurity")
     
     pred <- predict(rf_model, test_watersheds)
     
     # assessing accuracy
     rf_accuracy[i,1] <- species_name
-    rf_accuracy[i,2] <- sum(pred$predictions==test_watersheds$leucorrhinia_intacta)/
-      length(test_watersheds$leucorrhinia_intacta)
+    rf_accuracy[i,2] <- sum(pred$predictions==test_watersheds[[species_name]])/
+      length(test_watersheds[[species_name]])
     
     # FPRs and FNRs:
     rf_accuracy[i,3] <- 
-      sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==1)])-1)/
-      length(which(test_watersheds$leucorrhinia_intacta==1))
+      sum(as.numeric(pred$predictions[which(test_watersheds[[species_name]]==1)])-1)/
+      length(which(test_watersheds[[species_name]]==1))
     rf_accuracy[i,4] <-
-      sum(as.numeric(pred$predictions[which(test_watersheds$leucorrhinia_intacta==0)])-1)/
-      length(which(test_watersheds$leucorrhinia_intacta==0))
+      sum(as.numeric(pred$predictions[which(test_watersheds[[species_name]]==0)])-1)/
+      length(which(test_watersheds[[species_name]]==0))
     
     # assessing variable importance
     # getting the values for this iteration
@@ -94,14 +102,15 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
     # But we cannot use this for mapping - we need a probability of pres/absence.
     # That is what the following RF does
     probability_rf_model <- 
-      ranger(factor(leucorrhinia_intacta)~
-               pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-               soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
-             data = training_watersheds,
-             importance = "impurity",
-             mtry = 2, #from what our training suggested
-             min.node.size = 10, # ditto
-             probability = TRUE) # key difference
+      ranger(
+        formula = as.formula(
+          paste0("factor(", species_name, ") ~ ", paste(hydroatlas_variables, collapse = "+"))
+        ),
+        data = training_watersheds,
+        importance = "impurity",
+        mtry = 2, #from what our training suggested
+        min.node.size = 10, # ditto
+        probability = TRUE) # key difference
     
     spatial_prediction <- predict(probability_rf_model,
                                   as.data.frame(odonata_hydroatlas_overlay))
@@ -116,40 +125,29 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
   
   # 3. Process rf results
 
-  species_rf_performance_results <- data.frame(
-    species = character(),
-    mean_accuracy = double(),
-    accuracy_2.5_CI = double(),
-    accuracy_97.5_CI = double(),
-    mean_fn_rate = double(),
-    fn_2.5_CI = double(),
-    fn_97.5_CI = double(),
-    mean_fp_rate = double(),
-    fp_2.5_CI = double(),
-    fp_97.5_CI = double(),)
-  
   # accuracy, false positives, false negatives based on the non-probability rfs
   accuracy_lm <- lm(accuracy~1, data=rf_accuracy)
   fp_lm <- lm(fp~1, data=rf_accuracy)
   fn_lm <- lm(fn~1, data=rf_accuracy)
   
   # assign values
-  species_rf_results$species <- species_name
-  species_rf_results$mean_accuracy <- coef(accuracy_lm)
-  species_rf_results$accuracy_2.5_CI <- confint(accuracy_lm)[1,1]
-  species_rf_results$accuracy_97.5_CI <- confint(accuracy_lm)[1,2]
-  species_rf_results$mean_fn_rate <- coef(fn_lm)
-  species_rf_results$fn_2.5_CI <- confint(fn_lm)[1,1]
-  species_rf_results$fn_97.5_CI <- confint(fn_lm)[1,2]
-  species_rf_results$mean_fp_rate <- coef(fp_lm)
-  species_rf_results$fp_2.5_CI <- confint(fp_lm)[1,1]
-  species_rf_results$fp_97.5_CI <- confint(fp_lm)[1,2]
+  species_rf_results <- data.frame(
+    species = species_name,
+    mean_accuracy = coef(accuracy_lm)[1],
+    accuracy_2.5_CI = confint(accuracy_lm)[1,1],
+    accuracy_97.5_CI = confint(accuracy_lm)[1,2],
+    mean_fn_rate = coef(fn_lm)[1],
+    fn_2.5_CI = confint(fn_lm)[1,1],
+    fn_97.5_CI = confint(fn_lm)[1,2],
+    mean_fp_rate = coef(fp_lm)[1],
+    fp_2.5_CI = confint(fp_lm)[1,1],
+    fp_97.5_CI = confint(fp_lm)[1,2])
   
   # Process spatial prediction results
   species_prediction_dataframe <- data.frame(
-    species = species_name,
-    PFAF = prediction_dataframe$prediction_dataframe,
-    mean_prediction = rowMeans(prediction_dataframe[,2:ncol(prediction_dataframe)])
+    PFAF = prediction_dataframe$PFAF,
+    mean_prediction = rowMeans(prediction_dataframe[,2:ncol(prediction_dataframe)]),
+    species = species_name
   )
   
   # for variable importance, simply return what the above loop provides
@@ -159,7 +157,7 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
   
   # 4. Return results
   return(list(species_rf_results = species_rf_results,
-              species_variable_importance = species_variable_importance,
+              species_variable_importance = variable_importance,
               species_prediction_dataframe = species_prediction_dataframe))
 }
 
