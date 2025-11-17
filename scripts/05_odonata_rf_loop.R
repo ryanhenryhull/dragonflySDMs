@@ -78,10 +78,9 @@ for (species in species_list$species){
     run_rf_for_one_species(species_name, species_rf_df, optimal_mtry,
                            optimal_splitrule, optimal_min_node_size)
   
-  species_rf_resuts <- species_results$species_rf_results
+  species_rf_results <- species_results$species_rf_results
   species_variable_importance <- species_results$species_variable_importance
   species_prediction_dataframe <- species_results$species_prediction_dataframe
-  species_prediction_dataframe <- species_prediction_dataframe[,c("species", "PFAF", "mean_prediction")]
   
   # Join to our larger dataframes:
   odonata_rf_results <- rbind(odonata_rf_results, species_rf_results)
@@ -90,3 +89,11 @@ for (species in species_list$species){
   odonata_rf_predictions <- rbind(odonata_rf_predictions,
                                   species_prediction_dataframe)
 }
+
+
+
+
+# 4. Write out our awesome results
+write.csv(odonata_rf_results, "data/results/odonata_rf_performance_results.csv")
+write.csv(odonata_rf_variable_importance, "data/results/odonata_rf_variable_importance.csv")
+write.csv(odonata_rf_predictions, "data/results/odonata_rf_predictions.csv")

@@ -67,12 +67,12 @@ train_qc<-train
 # Here are models with default settings for both fucntions (notice that most of the variable names are hydroatlas referneces).
 
 fit_m1 <- randomForest(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ lkv_mc_usu+ele_mt_sav+tmp_dc_syr+ tmp_dc_smx+pre_mm_syr+
-                        for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
-                      data = train_qc)
+                         for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
+                       data = train_qc)
 
 fit_m2 <- ranger(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ lkv_mc_usu+ele_mt_sav+tmp_dc_syr+ tmp_dc_smx+pre_mm_syr+
-                for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
-              data = train_qc,importance = "impurity",)
+                   for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
+                 data = train_qc,importance = "impurity",)
 
 
 #from these we can estimate the accuracy using a binary classification split at 0.5
@@ -123,8 +123,8 @@ train(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ l
 #accuracy
 
 accuracy <- data.frame(accuracy=double(),fn=double(),fp=double(),
-                 data=character(),
-                 stringsAsFactors=FALSE)
+                       data=character(),
+                       stringsAsFactors=FALSE)
 
 
 accuracy_qc<-accuracy
@@ -145,16 +145,16 @@ imp_qc<-data.frame(importance=double(),varnames=character(), stringsAsFactors=FA
 #ideally run this through 1000 iteration, for the moment we will just do 10
 for(i in 1:10){
   
-#first part is repeating the sampling procedures without a set seed
+  #first part is repeating the sampling procedures without a set seed
   no_milfoil$prob<-no_milfoil$GBIF_Species/sum(no_milfoil$GBIF_Species)
-
+  
   pseudo<-sample(1:nrow(no_milfoil),size=nrow(milfoil_qc), prob=no_milfoil$prob)
   
   rf_dat<-as.data.frame(rbind(no_milfoil[pseudo,-ncol(no_milfoil)],milfoil_qc))
   
-
+  
   #####first split the data into a training and test data set
-
+  
   ## 75% of the sample size
   
   smp_size <- floor(0.75 * nrow(rf_dat))
@@ -171,46 +171,46 @@ for(i in 1:10){
   
   #replace the milfoil observation with milfoil observation from the other datasets
   
-      
-#second part is running prediction models for each training set
   
-
+  #second part is running prediction models for each training set
   
-fit <- ranger(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ lkv_mc_usu+ele_mt_sav+tmp_dc_syr+ tmp_dc_smx+pre_mm_syr+
-                for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
-              data = train_qc,importance = "impurity", mtry = 3,min.node.size=5)
-
-pred<-predict(fit,test)
-
-#accuracy
-accuracy_qc[i,1]<-sum(pred$predictions==test$MyrSpic)/length(test$MyrSpic)
-accuracy_qc[i,4]<-"QC"
-
-#false negative rate
-accuracy_qc[i,2]<-sum(as.numeric(pred$predictions[which(test$MyrSpic==1)])-1)/length(which(test$MyrSpic==1))
-
-#false positive rate
-accuracy_qc[i,3]<-sum(as.numeric(pred$predictions[which(test$MyrSpic==0)])-1)/length(which(test$MyrSpic==0))
-
-##var importance
-
-imp <- as.data.frame(fit$variable.importance)
-imp$varnames <- rownames(imp) # row names to column
-rownames(imp) <- NULL  
-colnames(imp)[1]<-"importance"
-
-imp_qc<-rbind(imp_qc,imp)
-
-#estimate probability of presence
-
-prob_fit<- ranger(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ lkv_mc_usu+ele_mt_sav+tmp_dc_syr+ tmp_dc_smx+pre_mm_syr+
-                    for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
-                  data = train_qc,importance = "impurity", mtry = 3,min.node.size=5,probability = TRUE)
-
-spatial_pred<-predict(prob_fit,as.data.frame(qc_map))
-
-pred_frame_qc<-cbind(pred_frame_qc,spatial_pred$predictions[,2])
-
+  
+  
+  fit <- ranger(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ lkv_mc_usu+ele_mt_sav+tmp_dc_syr+ tmp_dc_smx+pre_mm_syr+
+                  for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
+                data = train_qc,importance = "impurity", mtry = 3,min.node.size=5)
+  
+  pred<-predict(fit,test)
+  
+  #accuracy
+  accuracy_qc[i,1]<-sum(pred$predictions==test$MyrSpic)/length(test$MyrSpic)
+  accuracy_qc[i,4]<-"QC"
+  
+  #false negative rate
+  accuracy_qc[i,2]<-sum(as.numeric(pred$predictions[which(test$MyrSpic==1)])-1)/length(which(test$MyrSpic==1))
+  
+  #false positive rate
+  accuracy_qc[i,3]<-sum(as.numeric(pred$predictions[which(test$MyrSpic==0)])-1)/length(which(test$MyrSpic==0))
+  
+  ##var importance
+  
+  imp <- as.data.frame(fit$variable.importance)
+  imp$varnames <- rownames(imp) # row names to column
+  rownames(imp) <- NULL  
+  colnames(imp)[1]<-"importance"
+  
+  imp_qc<-rbind(imp_qc,imp)
+  
+  #estimate probability of presence
+  
+  prob_fit<- ranger(factor(MyrSpic)~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ lkv_mc_usu+ele_mt_sav+tmp_dc_syr+ tmp_dc_smx+pre_mm_syr+
+                      for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
+                    data = train_qc,importance = "impurity", mtry = 3,min.node.size=5,probability = TRUE)
+  
+  spatial_pred<-predict(prob_fit,as.data.frame(qc_map))
+  
+  pred_frame_qc<-cbind(pred_frame_qc,spatial_pred$predictions[,2])
+  
 }
 
 total_accuracy<-accuracy_qc
@@ -281,7 +281,7 @@ total_area$scene<-factor(total_area$scene, levels = c("present" ,"126_70" , "126
 
 #plot probabilities
 m1<-ggplot()+
-geom_sf(data = qc_map, aes(fill = myr_qcpred), colour = NA) +
+  geom_sf(data = qc_map, aes(fill = myr_qcpred), colour = NA) +
   scale_fill_viridis_c(limits = c(0, 1),name ="QC") +
   theme_bw()+
   theme(legend.position = c(0.87, 0.8))
@@ -307,14 +307,14 @@ b
 ###partial residual plots
 
 fit_m <- randomForest(MyrSpic~dis_m3_pyr+dis_m3_pmx+riv_tc_ssu +riv_tc_usu+rev_mc_usu+ lkv_mc_usu+ele_mt_sav+tmp_dc_syr+ tmp_dc_smx+pre_mm_syr+
-                  for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
-                data = rf_dat, probability = TRUE,mtry = 3,min.node.size=5)
+                        for_pc_sse+for_pc_use+crp_pc_sse+crp_pc_use+pst_pc_sse+pst_pc_use +ppd_pk_sav+ppd_pk_uav+urb_pc_sse+urb_pc_use+rdd_mk_sav+rdd_mk_uav+wet_extent+bicarb_mean,
+                      data = rf_dat, probability = TRUE,mtry = 3,min.node.size=5)
 v1<- visreg(fit_m, "tmp_dc_smx", partial=FALSE, rug=FALSE, gg=TRUE)+
   theme_classic()
-  
+
 v2<- visreg(fit_m, "tmp_dc_syr", partial=FALSE, rug=FALSE, gg=TRUE)+
   theme_classic()
-  
+
 v3<- visreg(fit_m, "pre_mm_syr",  partial=FALSE, rug=FALSE, gg=TRUE)+
   theme_classic()
   

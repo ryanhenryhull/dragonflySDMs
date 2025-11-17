@@ -5,6 +5,8 @@
 # Output: a gpkg file containing hydroatlas + gbif data
 # -----------------------------------------------------------------------------
 
+
+
 # 1. Load Libraries
 library("sf") ## a major package for geospatial data - encoded as "simple features" in R. both shapefiles and gpkgs will be treated as simple features.
 library("ggplot2")
@@ -12,6 +14,8 @@ library("dplyr")
 library("tidyr")
 library("janitor")
 sf::sf_use_s2(FALSE) # to work on a flat earth - ask lars about this
+
+
 
 # 2. Reading in data. Convert species obs to sf:
 rm(list=ls())
@@ -24,6 +28,7 @@ all_odonata_obs_sf <- st_as_sf(
 )
 
 CAN_USA_atlas <- st_read("data/raw/CAN_USA_atlas.gpkg")
+
 
 
 # 3. Overlaying the observations on the hydroatlas
@@ -89,6 +94,7 @@ odonata_obs_with_hydroatlas_final$coordinateUncertaintyInMeters <- NULL
 odonata_obs_with_hydroatlas_final$day <- NULL
 odonata_obs_with_hydroatlas_final$month <- NULL
 odonata_obs_with_hydroatlas_final$year <- NULL
+
 
 
 # 4. Writing out our new file

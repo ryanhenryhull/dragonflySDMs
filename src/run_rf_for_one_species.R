@@ -78,13 +78,30 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
     rf_accuracy[i,2] <- sum(pred$predictions==test_watersheds[[species_name]])/
       length(test_watersheds[[species_name]])
     
-    # FPRs and FNRs:
-    rf_accuracy[i,3] <- 
-      sum(as.numeric(pred$predictions[which(test_watersheds[[species_name]]==1)])-1)/
-      length(which(test_watersheds[[species_name]]==1))
+    # False positive rate:
     rf_accuracy[i,4] <-
       sum(as.numeric(pred$predictions[which(test_watersheds[[species_name]]==0)])-1)/
       length(which(test_watersheds[[species_name]]==0))
+    # how to read above:
+    # sum(as.numeric(pred$predictions[which(test_watersheds[[species_name]]==0)])-1)
+    # means
+    #                                     (find test wtersheds where species=0)
+    #                                 [convert to indeces locations (from T/F) ]
+    #               (extract from pred the prediction (0 or 1) at those indeces )
+    #    (as.numeric returns numbers for factors: here,1 for 0,and 2 for 1. so must -1
+    # so the sum counts how many 1s were predicted in the PFAFs where there was in truth a 0.
+    # then divide by the total number of test PFAFs that were 0 to get false positive rate.
+    
+    # False negative rate:
+    true_positive_rate <- 
+      sum(as.numeric(pred$predictions[which(test_watersheds[[species_name]]==1)])-1)/
+      length(which(test_watersheds[[species_name]]==1))
+    # note the above calculates, among test PFAFs that have species present, 
+    # proportion of the places where we predicted present. thus this is the 
+    # "true positive rate".
+    # thus FNR:
+    rf_accuracy[i,3] <- 1 - true_positive_rate
+    
     
     # assessing variable importance
     # getting the values for this iteration
@@ -149,6 +166,7 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
     mean_prediction = rowMeans(prediction_dataframe[,2:ncol(prediction_dataframe)]),
     species = species_name
   )
+  species_prediction_dataframe <- species_prediction_dataframe[,c("species", "PFAF", "mean_prediction")]
   
   # for variable importance, simply return what the above loop provides
     
