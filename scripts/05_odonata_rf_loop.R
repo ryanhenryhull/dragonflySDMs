@@ -66,9 +66,8 @@ odonata_rf_predictions <- data.frame()
 
 for (species in species_list$species){
   
-  #species_name = species
-  # test:
-  species_name = "aeshna_canadensis"
+  species_name = species
+  print(species_name)
   
   # Create dataframe to be used in random forest model
   species_rf_df <- create_rf_dataframe(odonata_hydroatlas_overlay, species_name)
@@ -89,7 +88,6 @@ for (species in species_list$species){
   odonata_rf_predictions <- rbind(odonata_rf_predictions,
                                   species_prediction_dataframe)
 }
-
 
 
 

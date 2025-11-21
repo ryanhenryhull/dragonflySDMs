@@ -10,12 +10,9 @@ what numbers to choose? We've increased the number of parameters now.
 ## optimal hyperparameterization
 most frequent combination is mtry=5, nodesize=5
 but is this an optimal middleground? should I take the most frequent of each
-individually?
+individually? would still be 5, 5 so I guess its the best.
 
-## Hydroatlas variables
-Are they good? Wait for Cindy response
-
-## How to calculate mean and mean latitude
+## How to calculate median and mean latitude
 - from range
 - from gbif
 
