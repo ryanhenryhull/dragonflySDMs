@@ -55,12 +55,16 @@ rsconnect/
 
 
 # stuff ryan wants to leave out
-data/*
+data/**
 outputs/*
 questions.md
 ideas.md
 
 # stuff from data I actually want to include
+!data/raw
+!data/processed
+!data/results
 !data/raw/hydroatlas_variable_description.md
 !data/raw/README.md
 !data/processed/README.md
+!outputs/
