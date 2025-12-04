@@ -9,9 +9,6 @@ These files will not be ran directly. They will either be called by scripts/, or
 ## leucorrhinia_gbif_processing.R
 A previous version of scripts/01_full_odonata_gbif_processing for just the family
 
-## comparing_intacta_mydownload_larsdownload.R
-I was skeptical about the difference between our two downloads
-
 ## Iversen_milfoil_rf_short.R
 Prof. Iversen's rf code from a previous study
 
@@ -22,5 +19,9 @@ For instance, no need to run RF once before the for(1:10) runs. Lars had done th
 For instance, I forgot to add the optimal hyperparameterization to the 1:10 for 
 the probability=false runs.
 
-## creating_rf_df
+## creating_rf_df.R
 Given a large GBIF obs - hydroatlas overlay, trims down to given species of interest and prepares dataframe to be used in RF model.
+
+## run_rf_for_one_species.R
+Use the rf_df to run model for a given species. returns the performance results for 
+the model, variable importance results, and a dataframe of spatial predictions.

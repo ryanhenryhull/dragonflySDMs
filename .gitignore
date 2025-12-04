@@ -5,6 +5,7 @@
 # Session Data files
 .RData
 .RDataTmp
+.RHistory
 
 # User-specific files
 .Ruserdata
@@ -50,6 +51,16 @@ rsconnect/
 
 
 
+
+
+
 # stuff ryan wants to leave out
-data/
-outputs/
+data/*
+outputs/*
+questions.md
+ideas.md
+
+# stuff from data I actually want to include
+!data/raw/hydroatlas_variable_description.md
+!data/raw/README.md
+!data/processed/README.md
