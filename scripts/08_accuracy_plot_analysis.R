@@ -20,13 +20,13 @@ rf_results_with_lat_data <- read.csv("data/results/odonata_rf_performance_with_l
 
 
 
-# 3. Plot mean species latitude against accuracy of their rf model
-mean_lat_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=mean_lat, y=mean_accuracy))+
+# 3. Plot mean species latitude against accuracy of their rf model - using centroid decimal lat
+mean_lat_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=centroid_decimalLat, y=mean_accuracy))+
   geom_point(color = "darkblue") +
   geom_smooth(method = "lm", se=TRUE) +
   labs(
     title = "Random forest SDM accuracy across North American Odonates",
-    x = "Mean latitude of select GBIF species observations",
+    x = "Centroid latitude of convex hull of select GBIF species observations",
     y = "Model accuracy"
   )+
   theme(
@@ -76,7 +76,7 @@ number_observations_vs_rf_accuracy_log
 
 
 # 5. plot observation density against model accuracy with  #log transformation
-obs_density_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=observation_density_obs_per_km2, y=mean_accuracy))+
+obs_density_vs_rf_accuracy_log <- ggplot(data = rf_results_with_lat_data, aes(x=observation_density_obs_per_km2, y=mean_accuracy))+
   geom_point(color = "darkblue") +
   geom_smooth(method = "lm", se=TRUE) +
   scale_x_log10() +   #log transformation
@@ -90,7 +90,7 @@ obs_density_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=obse
     axis.title = element_text(size = 12, color = "black"),
     axis.text.x = element_text(angle = 50, vjust=1, hjust=1, size=10))
 
-obs_density_vs_rf_accuracy
+obs_density_vs_rf_accuracy_log
 
 
 
@@ -106,8 +106,14 @@ lm_density_accuracy <- lm(mean_accuracy ~ observation_density_obs_per_km2, data 
 
 
 # 7. Write out beautiful results
-ggsave("outputs/rf_accuracy_vs_mean_latitude.png", plot = mean_lat_vs_rf_accuracy,
+ggsave("outputs/rf_accuracy_vs_centroid_latitude_of_convex_hull.png", plot = mean_lat_vs_rf_accuracy,
        width = 10, height = 7)
 
 ggsave("outputs/rf_accuracy_vs_num_obs.png", plot = number_observations_vs_rf_accuracy,
+       width = 10, height = 7)
+
+ggsave("outputs/rf_accuracy_vs_num_obs_log.png", plot = number_observations_vs_rf_accuracy_log,
+       width = 10, height = 7)
+
+ggsave("outputs/rf_accuracy_vs_obs_density_log.png", plot = obs_density_vs_rf_accuracy_log,
        width = 10, height = 7)
