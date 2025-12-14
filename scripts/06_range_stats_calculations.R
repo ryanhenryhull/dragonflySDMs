@@ -7,7 +7,8 @@
 
 
 # 1. Libraries
-
+library(sf)
+library(lwgeom)
 
 
 # 2. Data
@@ -48,5 +49,45 @@ for (species in odonata_rf_results$species){
 
 
 
-# 4. Write out beautiful data
+# 4. calculate convex hull and centroid latitude/longitude based on that
+
+odonata_rf_results$convex_hull_area_km2 <- NA
+odonata_rf_results$centroid_decimalLat <- NA
+odonata_rf_results$centroid_decimalLong <- NA
+odonata_rf_results$observation_density_obs_per_km2 <- NA
+
+
+species_obs_sf <- st_as_sf(odonata_obs,
+                           coords = c("decimalLongitude", "decimalLatitude"),
+                           crs=4326)
+species_obs_projection <- st_transform(species_obs_sf, 5070) ## 5070 is the North America Albers Equal Area projection, recommended for calculating area here
+
+for (species in species_list$species){
+  print(species)
+  this_species_obs_projection <- species_obs_projection[species_obs_projection$species == species,]
+  convex_hull <- st_convex_hull(st_union(this_species_obs_projection))
+  area_m2 <- st_area(convex_hull)
+  area_km2 <- area_m2 * 0.000001
+  centroid <- st_centroid(convex_hull)
+  centroid_latlong <- st_transform(centroid, 4326) # this crs is made for interpreting lat long well
+  centroid_lat <- st_coordinates(centroid_latlong)[2]
+  centroid_long <- st_coordinates(centroid_latlong)[1]
+  
+  # assigning these values to our data
+  odonata_rf_results[odonata_rf_results$species == species, "convex_hull_area_km2"] <-
+    area_km2
+  odonata_rf_results[odonata_rf_results$species == species, "centroid_decimalLat"] <-
+    centroid_lat
+  odonata_rf_results[odonata_rf_results$species == species, "centroid_decimalLong"] <-
+    centroid_long
+  
+  # assigning density of observations to our data:
+  density = odonata_rf_results[odonata_rf_results$species == species, "num_obs"] / area_km2
+  odonata_rf_results[odonata_rf_results$species == species, "observation_density_obs_per_km2"] <-
+    density
+}
+
+
+
+# 5. Write out beautiful data
 write.csv(odonata_rf_results, "data/results/odonata_rf_performance_with_latitude_stats.csv", row.names=FALSE)

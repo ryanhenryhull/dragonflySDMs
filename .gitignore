@@ -56,7 +56,7 @@ rsconnect/
 
 # stuff ryan wants to leave out
 data/**
-outputs/*
+outputs/**
 questions.md
 ideas.md
 
@@ -64,7 +64,9 @@ ideas.md
 !data/raw
 !data/processed
 !data/results
+!outputs/
 !data/raw/hydroatlas_variable_description.md
 !data/raw/README.md
 !data/processed/README.md
-!outputs/
+!data/results/.gitkeep
+!outputs/.gitkeep

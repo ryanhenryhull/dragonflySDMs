@@ -3,7 +3,8 @@
 # Date: November 2025
 # Purpose: Generate final figures/results
 #               - plot of mean species latitude vs accuracy of model
-#               - heat map of where we can make good predictions
+#               - num obs
+#               - obs density
 # ------------------------------------------------------------------------------
 
 
@@ -37,13 +38,13 @@ mean_lat_vs_rf_accuracy
 
 
 
-# 4. plot number of observations against model accuracy
+# 4. plot number of observations against model accuracy.
 number_observations_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=num_obs, y=mean_accuracy))+
   geom_point(color = "darkblue") +
   geom_smooth(method = "lm", se=TRUE) +
   labs(
     title = "Random forest SDM accuracy across North American Odonates",
-    x = "Number of GBIF observations",
+    x = "Number of observations",
     y = "Model accuracy"
   )+
   theme(
@@ -55,20 +56,56 @@ number_observations_vs_rf_accuracy
 
 
 
-# 5. Model stats
+# 4.2 plot number of observations against model accuracy.- log scale
+number_observations_vs_rf_accuracy_log <- ggplot(data = rf_results_with_lat_data, aes(x=num_obs, y=mean_accuracy))+
+  geom_point(color = "darkblue") +
+  geom_smooth(method = "lm", se=TRUE) +
+  scale_x_log10() +   #log transformation
+  labs(
+    title = "Random forest SDM accuracy across North American Odonates",
+    x = "Number of observations",
+    y = "Model accuracy"
+  )+
+  theme(
+    plot.title = element_text(face = "bold", size=13),
+    axis.title = element_text(size = 12, color = "black"),
+    axis.text.x = element_text(angle = 50, vjust=1, hjust=1, size=10))
+
+number_observations_vs_rf_accuracy_log
+
+
+
+# 5. plot observation density against model accuracy with  #log transformation
+obs_density_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=observation_density_obs_per_km2, y=mean_accuracy))+
+  geom_point(color = "darkblue") +
+  geom_smooth(method = "lm", se=TRUE) +
+  scale_x_log10() +   #log transformation
+  labs(
+    title = "Random forest SDM accuracy across North American Odonates",
+    x = "Observation density (obs/km2 at log10 scale)",
+    y = "Model accuracy"
+  )+
+  theme(
+    plot.title = element_text(face = "bold", size=13),
+    axis.title = element_text(size = 12, color = "black"),
+    axis.text.x = element_text(angle = 50, vjust=1, hjust=1, size=10))
+
+obs_density_vs_rf_accuracy
+
+
+
+# 6. Model stats
 lm_lat_accuracy <- lm(mean_accuracy ~ mean_lat, data=rf_results_with_lat_data)
 summary(lm_lat_accuracy)
 
 lm_obs_accuracy <- lm(mean_accuracy ~ num_obs, data = rf_results_with_lat_data)
 summary(lm_obs_accuracy)
 
-
-
-# 5. Make heat map of prediction accuracy across PFAFs
+lm_density_accuracy <- lm(mean_accuracy ~ observation_density_obs_per_km2, data = rf_results_with_lat_data)
 
 
 
-# 6. Write out beautiful results
+# 7. Write out beautiful results
 ggsave("outputs/rf_accuracy_vs_mean_latitude.png", plot = mean_lat_vs_rf_accuracy,
        width = 10, height = 7)
 

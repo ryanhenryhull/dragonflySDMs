@@ -6,8 +6,8 @@
 # -----------------------------------------------------------------------------
 
 
-
 # 1. Load Libraries
+rm(list=ls())
 library("sf") ## a major package for geospatial data - encoded as "simple features" in R. both shapefiles and gpkgs will be treated as simple features.
 library("ggplot2")
 library("dplyr")
@@ -100,3 +100,15 @@ odonata_obs_with_hydroatlas_final$year <- NULL
 # 4. Writing out our new file
 st_write(odonata_obs_with_hydroatlas_final, "data/processed/odonata_hydroatlas_overlay.gpkg",
          append=FALSE) # to provide rewrite permission if file is already there
+
+
+# 5. visualisation of obs on map of north america
+northamerica <- st_read("data/raw/NA_shapefile/boundaries_p_2021_v3.shp")
+
+obs_map <-
+  ggplot() +
+    geom_sf(data = northamerica, fill = "grey90", color = "grey60") +
+    geom_sf(data = odonata_obs_with_hydroatlas_final, color = "red", size = 0.6) +
+    theme_minimal()
+
+ggsave("outputs/obs_map.png",obs_map)
