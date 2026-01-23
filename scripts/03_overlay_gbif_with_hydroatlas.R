@@ -20,7 +20,7 @@ sf::sf_use_s2(FALSE) # to work on a flat earth - ask lars about this
 # 2. Reading in data. Convert species obs to sf:
 rm(list=ls())
 
-all_odonata_obs <- read.csv("data/processed/all_odonata_obs_clean.csv")
+all_odonata_obs <- read.csv("data/processed/odonata_obs_clean.csv")
 all_odonata_obs_sf <- st_as_sf(
   all_odonata_obs,
   coords = c("decimalLongitude", "decimalLatitude"),
