@@ -18,7 +18,8 @@ library(ggplot2)
 # 2. Data
 rf_results_with_lat_data <- read.csv("data/results/odonata_rf_performance_with_latitude_stats.csv")
 
-
+# how many have good accuracy
+length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/318
 
 # 3. Plot mean species latitude against accuracy of their rf model - using centroid decimal lat
 mean_lat_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=centroid_decimalLat, y=mean_accuracy))+

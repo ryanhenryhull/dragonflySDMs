@@ -1,8 +1,8 @@
 # -----------------------------------------------------------------------------
 # Author: Ryan Hull
 # Date: October 2025
-# Purpose: Process GBIF data to see observations for all
-#           dragonfly species in North America.
+# Purpose: Process GBIF data to obtain clean, select observations for all
+#         dragonfly species in North America.
 # Output: A dataset of cleaned observations for all model-suitable dragonflies
 # -----------------------------------------------------------------------------
 
@@ -15,39 +15,56 @@ library(dplyr)
 
 
 
-# 2. Data cleaning
-all_odonata_obs <- read_tsv("data/raw/gbif_NA_odonata.csv")
+# 2. Data cleaning - US/CAN observations
+can_usa_odonata_obs <- read_tsv("data/raw/gbif_USCAN_odonata.csv")
 
 # keep useful columns
-all_odonata_obs <- all_odonata_obs[c("gbifID","order","family","genus","species",
+can_usa_odonata_obs <- can_usa_odonata_obs[c("gbifID","order","family","genus","species",
                                      "taxonRank","countryCode", "stateProvince",
                                      "individualCount","decimalLatitude",
                                      "decimalLongitude","coordinateUncertaintyInMeters",
                                      "day","month","year","institutionCode")]
 
 # Cleaning out observations with no location
-all_odonata_obs <-
-  all_odonata_obs[!is.na(all_odonata_obs$decimalLatitude) & !is.na(all_odonata_obs$decimalLongitude),]
+can_usa_odonata_obs <-
+  can_usa_odonata_obs[!is.na(can_usa_odonata_obs$decimalLatitude) & !is.na(can_usa_odonata_obs$decimalLongitude),]
 
 # Keep only observations whose coordinate uncertainty doesn't exceed our gridsize
-all_odonata_obs <- 
-  all_odonata_obs[is.na(all_odonata_obs$coordinateUncertaintyInMeters) |
-                    all_odonata_obs$coordinateUncertaintyInMeters < 10000,]
+can_usa_odonata_obs <- 
+  can_usa_odonata_obs[is.na(can_usa_odonata_obs$coordinateUncertaintyInMeters) |
+                    can_usa_odonata_obs$coordinateUncertaintyInMeters < 10000,]
 
 # Keep only the last 25 years of observations
-all_odonata_obs <- 
-  all_odonata_obs[all_odonata_obs$year >= 2000,]
+can_usa_odonata_obs <- 
+  can_usa_odonata_obs[can_usa_odonata_obs$year >= 2000,]
 
 # Keep only species level observations
-all_odonata_obs <- all_odonata_obs[which(all_odonata_obs$taxonRank=="SPECIES"), ]
-
-# Keep only species that occur in Canada? Or not.... or only species that have a certain delta-lat??
+can_usa_odonata_obs <- can_usa_odonata_obs[which(can_usa_odonata_obs$taxonRank=="SPECIES"), ]
 
 
 
-# 3. Making a species table to see #obs per species and select those that >100 obs
+# 3. Data cleaning - Mexico / Central America observations
+mex_cen_odonata_obs <- read_tsv("data/raw/gbif_mexico_central_america_odonata.csv")
+mex_cen_odonata_obs <- mex_cen_odonata_obs[c("gbifID","order","family","genus","species",
+                                             "taxonRank","countryCode", "stateProvince",
+                                             "individualCount","decimalLatitude",
+                                             "decimalLongitude","coordinateUncertaintyInMeters",
+                                             "day","month","year","institutionCode")]
+mex_cen_odonata_obs <-
+  mex_cen_odonata_obs[!is.na(mex_cen_odonata_obs$decimalLatitude) & !is.na(mex_cen_odonata_obs$decimalLongitude),]
+mex_cen_odonata_obs <- 
+  mex_cen_odonata_obs[is.na(mex_cen_odonata_obs$coordinateUncertaintyInMeters) |
+                        mex_cen_odonata_obs$coordinateUncertaintyInMeters < 10000,]
+mex_cen_odonata_obs <- 
+  mex_cen_odonata_obs[mex_cen_odonata_obs$year >= 2000,]
+mex_cen_odonata_obs <- mex_cen_odonata_obs[which(mex_cen_odonata_obs$taxonRank=="SPECIES"), ]
 
-species_counts <- all_odonata_obs %>%
+
+
+# 4. Making a species table to see #obs per species
+#    in USACAN, and retaining those that >=100 obs
+
+species_counts <- can_usa_odonata_obs %>%
   group_by(species) %>%
   summarise(observations = n())   # count rows per species
 
@@ -57,25 +74,34 @@ qualified_species <- species_counts[species_counts$observations>=100,]
 
 
 
-# 4. Reducing dataframe to qualified species and adding num_obs_species column
+# 5. Reducing obs dataframes to qualified species & adding num_obs_species column
 
 # 161 species were unqualified, hence we should lose ~50*161 rows,
-# on the order of 5000-15000rows. looks like we lose 6000so checks out.
-qualified_odonata_obs <-
-  all_odonata_obs[all_odonata_obs$species %in% qualified_species$species,]
+# on the order of 5000-15000rows. looks like we lose 6000, so checks out.
+qualified_uscan_odonata_obs <-
+  can_usa_odonata_obs[can_usa_odonata_obs$species %in% qualified_species$species,]
 
-qualified_odonata_obs <- merge(
-  qualified_odonata_obs,
-  qualified_species,
+# do the same for mexican/c.a. obs:
+qualified_mex_cen_obs <-
+  mex_cen_odonata_obs[mex_cen_odonata_obs$species %in% qualified_species$species,]
+
+# Merge the two and recount species observations with the added obs
+qualified_all_obs <- rbind(qualified_uscan_odonata_obs, qualified_mex_cen_obs)
+
+qualified_species_obs_counts_with_mex_cen <- qualified_all_obs %>%
+  group_by(species) %>%
+  summarise(observations = n())   # count rows per species
+
+qualified_all_obs <- merge(
+  qualified_all_obs,
+  qualified_species_obs_counts_with_mex_cen,
   by = "species",
-  all.x = TRUE # keeps all qualified_odonata_obs ie like a left join
+  all.x = TRUE # keeps all qualified_all_obs ie like a left join
 )
-
-qualified_odonata_obs <- rename(qualified_odonata_obs, species_obs_count = observations)
-
+qualified_all_obs <- rename(qualified_all_obs, species_obs_count = observations)
 
 
-# 5. Writing out data
 
-write.csv(qualified_odonata_obs, "data/processed/all_odonata_obs_clean.csv", row.names=FALSE)
-write.csv(qualified_species, "data/processed/odonata_species_list_with_obs.csv", row.names=FALSE)
+# 6. Writing out data
+write.csv(qualified_all_obs, "data/processed/odonata_obs_clean.csv", row.names=FALSE)
+write.csv(qualified_species_obs_counts_with_mex_cen, "data/processed/full_odonata_species_list_with_obs.csv", row.names=FALSE)
