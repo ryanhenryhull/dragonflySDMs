@@ -53,7 +53,7 @@ Natural discharge in cubic meters Category: Hydrology
 
 Global administrative area Category: Anthropogenic
 
-## need more environmental variables describing landscape and climate
+## We needed more environmental variables describing landscape and climate. So these were added:
 
 ### 12. snw_pc_syr
 

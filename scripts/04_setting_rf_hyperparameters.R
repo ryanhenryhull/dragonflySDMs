@@ -51,7 +51,7 @@ rm(random_numbers)
 tgrid <- expand.grid(
   mtry = c(2,3,4,5,10),
   splitrule = "gini",
-  min.node.size = c(5,7,10)
+  min.node.size = c(5,7,10, 15) # adding 15 since we added new hydroatlas vars
 )
 
 random_species_hyperparameters <- random_species
@@ -92,6 +92,12 @@ odonata_hydroatlas_overlay <- odonata_hydroatlas_overlay[
     "ophiogomphus_rupinsulensis")
 ]
 
+
+# HERE:
+# need to introduce the ecoregions. new overlay? and create column of what
+# ecoregion each obs is in. Or check that directly during sampling? Surely
+# too slow. add the column here, and sample from the subset of rows that
+# have that ecoregion.
 
 
 
