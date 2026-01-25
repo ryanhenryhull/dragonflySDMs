@@ -20,6 +20,6 @@ GBIF.org (09 September 2025) GBIF Occurrence Download  https://doi.org/10.15468/
 My download of all central american or mexican odonata observations, 2000-2025
 GBIF.org (20 January 2026) GBIF Occurrence Download https://doi.org/10.15468/dl.ne7x36
 
-## CAN_USA_gpkg
+## NA_CA_gpkg
 Output of scripts/02_hydroatlas_processing
 

@@ -8,26 +8,27 @@
 
 # 1. Load Libraries
 rm(list=ls())
-library("sf") ## a major package for geospatial data - encoded as "simple features" in R. both shapefiles and gpkgs will be treated as simple features.
+library("sf") # good package for working with simple features, a way of working with vector data
 library("ggplot2")
 library("dplyr")
 library("tidyr")
 library("janitor")
-sf::sf_use_s2(FALSE) # to work on a flat earth - ask lars about this
+library("mapview")
+sf::sf_use_s2(FALSE) # to work on a flat earth. Should be ok for below work.
+                     # when I calculate area I should use spherical
 
 
 
 # 2. Reading in data. Convert species obs to sf:
-rm(list=ls())
 
 all_odonata_obs <- read.csv("data/processed/odonata_obs_clean.csv")
-all_odonata_obs_sf <- st_as_sf(
+all_odonata_obs_sf <- st_as_sf( # st stands for spatial type
   all_odonata_obs,
   coords = c("decimalLongitude", "decimalLatitude"),
-  crs = 4326 # the standard coord system
+  crs = 4326 # standard crs - wgs84
 )
 
-CAN_USA_atlas <- st_read("data/raw/CAN_USA_atlas.gpkg")
+CAN_USA_atlas <- st_read("data/raw/NA_CA_atlas.gpkg")
 
 
 
@@ -35,7 +36,7 @@ CAN_USA_atlas <- st_read("data/raw/CAN_USA_atlas.gpkg")
 
 # Do they use the same crs?
 st_crs(CAN_USA_atlas)
-st_crs(all_odonata_obs_sf)
+st_crs(all_odonata_obs_sf) # yes wgs84
 
 # Keep only watershed IDs where one of our observations is found
 # note there could still be multiple rows per PFAF
@@ -97,17 +98,44 @@ odonata_obs_with_hydroatlas_final$year <- NULL
 
 
 
-# 4. Writing out our new file
+# 4. Overlaying ecoregions & constructing new column
+ecoregions <- st_read("data/raw/terrestrial_ecoregions_level_1_shapefile/terr_ecoregions_v2_level_i_shapefile/NA_TerrEcoregions_I/data/NA_Terrestrial_Ecoregions_v2_level1.shp")
+st_crs(ecoregions) #Sphere_ARC_INFO_Lambert_Azimuthal_Equal_Area, EPSG 1027
+
+# since we will need to calculate area later, might as well shift from wgs84 to 
+# the lambert azimuthal equal area (LAEA). I don't believe this will change the topology
+# (ie overlay) manipulations
+st_crs(odonata_obs_with_hydroatlas_final) # wgs84
+odonata_obs_with_hydroatlas_final <- st_transform(
+  odonata_obs_with_hydroatlas_final,
+  st_crs(ecoregions) # LAEA
+)
+st_crs(odonata_obs_with_hydroatlas_final) # now LAEA
+
+mapView(
+  x = ecoregions,
+  zcol = "NameL1_En",
+  col.regions = rainbow(length(unique(ecoregions$NameL1_En)))
+)
+
+mapView(
+  x=odonata_obs_with_hydroatlas_final,
+)
+
+
+
+# 5. Writing out our new file
 st_write(odonata_obs_with_hydroatlas_final, "data/processed/odonata_hydroatlas_overlay.gpkg",
          append=FALSE) # to provide rewrite permission if file is already there
 
 
-# 5. visualisation of obs on map of north america
-northamerica <- st_read("data/raw/NA_shapefile/boundaries_p_2021_v3.shp")
 
+# 6. visualisation of obs on map of America
+northamerica <- st_read("data/raw/NA_shapefile/boundaries_p_2021_v3.shp")
+world <- st_read("data/raw/world_shapefile/ne_10m_admin_0_countries.shp")
 obs_map <-
   ggplot() +
-    geom_sf(data = northamerica, fill = "grey90", color = "grey60") +
+    geom_sf(data = world, fill = "grey90", color = "grey60") +
     geom_sf(data = odonata_obs_with_hydroatlas_final, color = "red", size = 0.6) +
     theme_minimal()
 
