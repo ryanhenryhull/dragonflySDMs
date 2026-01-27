@@ -10,7 +10,11 @@
 #   Name of column for species of interest
 #
 # Outputs:
-#   dataframe ready to run RF
+#   dataframe ready to run RF.
+#   essentially a df of presence/absence watersheds, where absence
+#   sampling was weighted toward pfafs with more observations, and
+#   only taken from PFAFs of the same ecoregion(s) that presences 
+#   were found in.
 
 create_rf_dataframe <- function(overlay, species_name){
   
@@ -25,13 +29,18 @@ create_rf_dataframe <- function(overlay, species_name){
   species_absence_hydroatlas$prob <- 
     species_absence_hydroatlas$watershed_obs_count/nb_total_obs
   
-  # Select pseudoabsences randomly with the influence of assigned weight.
-  # Select a number to match nb of presences
-  #took away seed(1080) here since we want it different at each iteration... right?
+  # what ecoregion(s) does the species in question live in?
+  # DO HERE
+  
+  
+  # Select pseudoabsences randomly with the influence of assigned weight, from
+  # pfafs in same ecoregion(s)
+  # took away seed(1080) here since we want it different at each iteration
+  
   species_pseudoabsences <-
-    sample(1:nrow(species_absence_hydroatlas),
-           size = nrow(species_presence_hydroatlas),
-           prob = species_absence_hydroatlas$prob)
+    sample(1:nrow(species_absence_hydroatlas), # the sampling
+           size = nrow(species_presence_hydroatlas), # Select a number to match nb of presences.
+           prob = species_absence_hydroatlas$prob) # the weight
   
   species_rf_df <- as.data.frame(
     rbind(species_absence_hydroatlas[species_pseudoabsences,-ncol(species_absence_hydroatlas)], # removes prob

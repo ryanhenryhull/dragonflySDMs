@@ -62,7 +62,6 @@ rm(random_species)
 
 
 
-
 # 5. Setting up overlay for rf training
 
 # re-join watersheds w/o odonata obs 
@@ -85,19 +84,12 @@ odonata_hydroatlas_overlay <- odonata_hydroatlas_overlay[
   c("PFAF_ID", "pre_mm_syr", "ele_mt_sav", "slp_dg_sav", "ari_ix_sav",
     "tmp_dc_syr",  "snd_pc_sav", "soc_th_sav", "wet_cl_smj", "lka_pc_sse",
     "dis_m3_pyr", "gad_id_smj", "snw_pc_syr", "for_pc_sse", "sgr_dk_sav",
-    "aet_mm_syr", "crp_pc_sse", "watershed_obs_count",
+    "aet_mm_syr", "crp_pc_sse", "fec_cl_smj", "watershed_obs_count",
     "GBIF_species_count", "geom", "epitheca_petechialis", "brachymesia_herbida", "aeshna_clepsydra",
     "aeshna_tuberculifera", "libellula_cyanea", "argia_oenea",
     "enallagma_exsulans", "lestes_rectangularis", "epitheca_canis",
     "ophiogomphus_rupinsulensis")
 ]
-
-
-# HERE:
-# need to introduce the ecoregions. new overlay? and create column of what
-# ecoregion each obs is in. Or check that directly during sampling? Surely
-# too slow. add the column here, and sample from the subset of rows that
-# have that ecoregion.
 
 
 
@@ -110,10 +102,15 @@ random_species_hyperparameters$species <-
 all_species_training_results <- data.frame()
 
 for (species in random_species_hyperparameters$species){
-  # from src:
+  
+  # from src: this creates a df of presence/absence watersheds, where absence
+  #           sampling was weighted toward pfafs with more observations, and
+  #           only taken from PFAFs of the same ecoregion(s) that presences 
+  #           were found in.
+  
   species_rf_df <- create_rf_dataframe(odonata_hydroatlas_overlay, species)
   
-  # keep some data away from training, for testing later
+  # Create training and testing data:
   number_watersheds_for_training <- floor(0.75 * nrow(species_rf_df))
   set.seed(849)
   training_indeces <- sample(seq_len(nrow(species_rf_df)),

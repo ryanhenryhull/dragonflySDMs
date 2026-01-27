@@ -46,7 +46,7 @@ CAN_USA = hydroatlas %>%
   select(c(HYBAS_ID, PFAF_ID, pre_mm_syr, ele_mt_sav, slp_dg_sav, ari_ix_sav,
            tmp_dc_syr,  snd_pc_sav, soc_th_sav, wet_cl_smj, lka_pc_sse,
            dis_m3_pyr, gad_id_smj, snw_pc_syr, for_pc_sse, sgr_dk_sav, aet_mm_syr,
-           crp_pc_sse, geometry))
+           crp_pc_sse, fec_cl_smj, geometry)) #fec_cl_smj to include ecoregions
 
 #Sanity check: make sure we have countries we want
 ggplot()+  geom_sf(data=CAN_USA, aes(fill=gad_id_smj))+  theme_minimal()
