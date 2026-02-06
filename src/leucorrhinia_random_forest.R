@@ -38,7 +38,7 @@ rm(list=ls())
 odonata_hydroatlas_overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg") # note this includes an na col.... so its just some odonate I guess?
 
 # We'd excluded watersheds w/o odonata obs, we must re-join them
-all_basins <- st_read("data/raw/CAN_USA_atlas.gpkg")
+all_basins <- st_read("data/raw/NA_CA_atlas.gpkg")
 odonata_hydroatlas_overlay = odonata_hydroatlas_overlay[, c(1, 13:ncol(odonata_hydroatlas_overlay))]
 odonata_hydroatlas_overlay$geom <- NULL
 odonata_hydroatlas_overlay <- merge(all_basins, odonata_hydroatlas_overlay, by="PFAF_ID", all.x=TRUE)
@@ -126,7 +126,7 @@ tgrid <- expand.grid(
 # performance to learn best hyperparameter combinations
 train(factor(leucorrhinia_intacta)~
         pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-        soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr
+        soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
         data = training_watersheds,
         method = "ranger",
         tuneGrid = tgrid,
@@ -265,13 +265,22 @@ summary(odonata_hydroatlas_overlay$intacta_prediction)
 odonata_hydroatlas_overlay <- st_make_valid(odonata_hydroatlas_overlay)
 
 intacta_model1 <- ggplot() +
-  geom_sf(data = odonata_hydroatlas_overlay, aes(fill = intacta_prediction, colour=intacta_prediction)) +
+  geom_sf(
+    data = odonata_hydroatlas_overlay, 
+    aes(fill = intacta_prediction, colour=intacta_prediction)) +
   scale_fill_viridis() +
   scale_colour_viridis()+
-  theme_bw()
+  theme_bw() +
+  theme(
+    panel.grid.major=element_blank(),
+    panel.grid.minor=element_blank()
+  ) +
+  labs(
+    title ="Dot-Tailed Whiteface Occurence Prediction"
+  )
 intacta_model1
 
-ggsave(intacta_model1, filename="outputs/intacta_map.png")
+ggsave(intacta_model1, filename="outputs/intacta_map_v2.png")
 
 
 # Visualizing variable importance:
@@ -293,8 +302,7 @@ intacta_var_imp_plot
 # How do our predictors influence the presence probability? Visualization.
 rf_to_visualize_predictors <- randomForest(factor(leucorrhinia_intacta)~
       pre_mm_syr+ele_mt_sav+slp_dg_sav+ari_ix_sav+tmp_dc_syr+snd_pc_sav+
-      soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr,
-      data = intacta_rf_df,
+      soc_th_sav+wet_cl_smj+lka_pc_sse+dis_m3_pyr, data = intacta_rf_df,
       probability = TRUE,
       mtry = 2,
       min.node.size = 10)
