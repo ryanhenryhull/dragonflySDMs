@@ -1,5 +1,5 @@
 # dragonflySDMs2
-Repository for my Fall 2025 independent research project supervised by
+Repository for my Fall 2025 & Winter 2026 independent research project supervised by
 Prof. Lars Iversen @ McGill University
 
 ## data/
