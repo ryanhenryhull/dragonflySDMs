@@ -21,6 +21,8 @@ rf_results_with_lat_data <- read.csv("data/results/odonata_rf_performance_with_l
 # how many have good accuracy
 length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/318
 
+
+
 # 3. Plot mean species latitude against accuracy of their rf model - using centroid decimal lat
 mean_lat_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=centroid_decimalLat, y=mean_accuracy))+
   geom_point(color = "darkblue") +
@@ -39,7 +41,16 @@ mean_lat_vs_rf_accuracy
 
 
 
-# 4. plot number of observations against model accuracy.
+# 4. Assess and plot mean sp. lat. vs model accuracy - multiple regression to assess
+#    whether effect is independent of observation density
+lat_density_accuracy_multiple_regression <-
+  lm(data=rf_results_with_lat_data,
+     mean_accuracy ~ centroid_decimalLat + observation_density_obs_per_km2)
+summary(lat_density_accuracy_multiple_regression)
+
+
+
+# 5. plot number of observations against model accuracy.
 number_observations_vs_rf_accuracy <- ggplot(data = rf_results_with_lat_data, aes(x=num_obs, y=mean_accuracy))+
   geom_point(color = "darkblue") +
   geom_smooth(method = "lm", se=TRUE) +
@@ -57,7 +68,7 @@ number_observations_vs_rf_accuracy
 
 
 
-# 4.2 plot number of observations against model accuracy.- log scale
+# 5.2 plot number of observations against model accuracy.- log scale
 number_observations_vs_rf_accuracy_log <- ggplot(data = rf_results_with_lat_data, aes(x=num_obs, y=mean_accuracy))+
   geom_point(color = "darkblue") +
   geom_smooth(method = "lm", se=TRUE) +
@@ -76,7 +87,7 @@ number_observations_vs_rf_accuracy_log
 
 
 
-# 5. plot observation density against model accuracy with  #log transformation
+# 6. plot observation density against model accuracy with  #log transformation
 obs_density_vs_rf_accuracy_log <- ggplot(data = rf_results_with_lat_data, aes(x=observation_density_obs_per_km2, y=mean_accuracy))+
   geom_point(color = "darkblue") +
   geom_smooth(method = "lm", se=TRUE) +
@@ -95,7 +106,7 @@ obs_density_vs_rf_accuracy_log
 
 
 
-# 6. Model stats
+# 7. Model stats
 lm_lat_accuracy <- lm(mean_accuracy ~ mean_lat, data=rf_results_with_lat_data)
 summary(lm_lat_accuracy)
 
@@ -106,7 +117,7 @@ lm_density_accuracy <- lm(mean_accuracy ~ observation_density_obs_per_km2, data 
 
 
 
-# 7. Write out beautiful results
+# 8. Write out beautiful results
 ggsave("outputs/rf_accuracy_vs_centroid_latitude_of_convex_hull.png", plot = mean_lat_vs_rf_accuracy,
        width = 10, height = 7)
 

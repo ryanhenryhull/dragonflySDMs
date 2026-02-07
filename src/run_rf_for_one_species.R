@@ -45,7 +45,6 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
   
   
   
-  
   # 2. Run loop to collect rf results
   for (i in 1:10){
     
@@ -139,7 +138,6 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
   
   
   
-  
   # 3. Process rf results
 
   # accuracy, false positives, false negatives based on the non-probability rfs
@@ -169,7 +167,6 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
   species_prediction_dataframe <- species_prediction_dataframe[,c("species", "PFAF", "mean_prediction")]
   
   # for variable importance, simply return what the above loop provides
-    
   
   
   

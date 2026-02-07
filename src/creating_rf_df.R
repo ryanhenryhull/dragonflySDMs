@@ -16,6 +16,12 @@
 #   only taken from PFAFs of the same ecoregion(s) that presences 
 #   were found in.
 
+
+# the following is just for testing the function:
+library("sf")
+overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
+species_name <- "leucorrhinia_intacta"
+
 create_rf_dataframe <- function(overlay, species_name){
   
   # Calculate total number of observations across all PFAFs
@@ -30,12 +36,15 @@ create_rf_dataframe <- function(overlay, species_name){
     species_absence_hydroatlas$watershed_obs_count/nb_total_obs
   
   # what ecoregion(s) does the species in question live in?
-  # DO HERE
-  
+  ecoregion_list <- unique(species_presence_hydroatlas$fec_cl_smj)
+  # for sanity: how many ecoregions total?
+  num_ecoregions = length(unique(overlay$fec_cl_smj))
   
   # Select pseudoabsences randomly with the influence of assigned weight, from
   # pfafs in same ecoregion(s)
   # took away seed(1080) here since we want it different at each iteration
+  species_absence_hydroatlas <- species_absence_hydroatlas[
+      species_absence_hydroatlas$fec_cl_smj %in% ecoregion_list,] # assumes there will be enough absence pfafs left within those ecoregions to match the number of presence pfafs... safe bet I believe
   
   species_pseudoabsences <-
     sample(1:nrow(species_absence_hydroatlas), # the sampling
