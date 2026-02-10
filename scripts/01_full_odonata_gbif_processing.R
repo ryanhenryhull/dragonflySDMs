@@ -8,15 +8,19 @@
 
 
 
+
 # 1. Loading packages
 rm(list=ls())
 library(readr)
 library(dplyr)
+library(data.table)
+
 
 
 
 # 2. Data cleaning - US/CAN observations
-can_usa_odonata_obs <- read_tsv("data/raw/gbif_USCAN_odonata.csv")
+can_usa_odonata_obs  <- fread("data/raw/gbif_USCAN_odonata.csv", showProgress=TRUE) #fixes read_tsv error of only reading first 400 000 lines due to (gbif syntax error?)
+can_usa_odonata_obs <- as.data.frame(can_usa_odonata_obs)
 
 # keep useful columns
 can_usa_odonata_obs <- can_usa_odonata_obs[c("gbifID","order","family","genus","species",
@@ -43,8 +47,11 @@ can_usa_odonata_obs <- can_usa_odonata_obs[which(can_usa_odonata_obs$taxonRank==
 
 
 
+
 # 3. Data cleaning - Mexico / Central America observations
-mex_cen_odonata_obs <- read_tsv("data/raw/gbif_mexico_central_america_odonata.csv")
+mex_cen_odonata_obs <- fread("data/raw/gbif_mexico_central_america_odonata.csv")
+mex_cen_odonata_obs <- as.data.frame(mex_cen_odonata_obs)
+
 mex_cen_odonata_obs <- mex_cen_odonata_obs[c("gbifID","order","family","genus","species",
                                              "taxonRank","countryCode", "stateProvince",
                                              "individualCount","decimalLatitude",
@@ -61,6 +68,7 @@ mex_cen_odonata_obs <- mex_cen_odonata_obs[which(mex_cen_odonata_obs$taxonRank==
 
 
 
+
 # 4. Making a species table to see #obs per species
 #    in USACAN, and retaining those that >=100 obs
 
@@ -71,6 +79,7 @@ species_counts <- can_usa_odonata_obs %>%
 qualified_species <- species_counts[species_counts$observations>=100,]
 
 # opportunity for making cool visual here. Potentially collapsibletree.......... could be really cool
+
 
 
 
@@ -99,6 +108,8 @@ qualified_all_obs <- merge(
   all.x = TRUE # keeps all qualified_all_obs ie like a left join
 )
 qualified_all_obs <- rename(qualified_all_obs, species_obs_count = observations)
+
+
 
 
 

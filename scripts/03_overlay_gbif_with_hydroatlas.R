@@ -38,10 +38,10 @@ NA_CA_atlas <- st_read("data/raw/NA_CA_atlas.gpkg")
 st_crs(NA_CA_atlas)
 st_crs(all_odonata_obs_sf) # yes wgs84
 
-# Keep only watershed IDs where one of our observations is found
-# note there could still be multiple rows per PFAF
-# or... maybe keep all PFAFs...?
-odonata_obs_with_hydroatlas <- st_join(NA_CA_atlas, all_odonata_obs_sf, left=FALSE)
+# Keep only watershed IDs where one of our observations is found. thats what the left=false does.
+# note if many obs per watershed we will have a row for each. Thus we expect same # rows as obs df
+# (conceptual goal is to keep all observations, and add in hydroatlas data)
+odonata_obs_with_hydroatlas <- st_join(NA_CA_atlas, all_odonata_obs_sf, left=FALSE) # 2000 less obs... I guess they are outside of the watershed polygons
 
 # tally number of observations per PFAF and include it as a column
 odonata_obs_with_hydroatlas <- odonata_obs_with_hydroatlas %>%
@@ -59,7 +59,7 @@ odonata_obs_with_hydroatlas_long <-
               values_from=presence,
               values_fill=list(presence=0)
   ) |>
-  clean_names() # replace spaces with _ in colnames
+  clean_names() # replace spaces with _ in colnames. now theres one col for each species
 
 odonata_obs_with_hydroatlas_long <- dplyr::rename(
   odonata_obs_with_hydroatlas_long,
@@ -68,7 +68,7 @@ odonata_obs_with_hydroatlas_long <- dplyr::rename(
 
 # how many different species per PFAF?
 odonata_obs_with_hydroatlas_long$GBIF_species_count <-
-  rowSums(odonata_obs_with_hydroatlas_long[, 2:319]) ## hard coded 319 #species here.
+  rowSums(odonata_obs_with_hydroatlas_long[, 2:390]) ## hard coded 390 #species here.
 
 
 # Adding back in columns of interest 
@@ -97,8 +97,7 @@ odonata_obs_with_hydroatlas_final$month <- NULL
 odonata_obs_with_hydroatlas_final$year <- NULL
 
 
-# 4. Extracting ecoregion info into new species list for later use:
-# TO DO
+
 
 # 4. Writing out our new file
 st_write(odonata_obs_with_hydroatlas_final, "data/processed/odonata_hydroatlas_overlay.gpkg",
