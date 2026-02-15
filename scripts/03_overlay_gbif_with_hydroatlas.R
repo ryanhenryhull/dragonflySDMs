@@ -49,7 +49,7 @@ odonata_obs_with_hydroatlas <- odonata_obs_with_hydroatlas %>%
 
 # Remove duplicate PFAFs + species combos, since we only care if the species is present.
 # Widen dataframe to include presence/absence cols for each species
-odonata_obs_with_hydroatlas_long <-
+odonata_obs_with_hydroatlas_wide <-
 
   odonata_obs_with_hydroatlas |>
   st_drop_geometry() |>
@@ -61,24 +61,24 @@ odonata_obs_with_hydroatlas_long <-
   ) |>
   clean_names() # replace spaces with _ in colnames. now theres one col for each species
 
-odonata_obs_with_hydroatlas_long <- dplyr::rename(
-  odonata_obs_with_hydroatlas_long,
+odonata_obs_with_hydroatlas_wide <- dplyr::rename(
+  odonata_obs_with_hydroatlas_wide,
   PFAF_ID = pfaf_id)
   
 
 # how many different species per PFAF?
-odonata_obs_with_hydroatlas_long$GBIF_species_count <-
-  rowSums(odonata_obs_with_hydroatlas_long[, 2:390]) ## hard coded 390 #species here.
+odonata_obs_with_hydroatlas_wide$GBIF_species_count <-
+  rowSums(odonata_obs_with_hydroatlas_wide[, 2:390]) ## hard coded 390 #species here.
 
 
 # Adding back in columns of interest 
-# note since the original, final, and long all end up having the same number
+# note since the original, final, and wide all end up having the same number
 # of rows, no PFAF-species combos were lost by the joining.
 odonata_obs_with_hydroatlas <- 
   odonata_obs_with_hydroatlas[!duplicated(odonata_obs_with_hydroatlas$PFAF_ID),]
 
 odonata_obs_with_hydroatlas_final <- left_join(
-  odonata_obs_with_hydroatlas, odonata_obs_with_hydroatlas_long, by="PFAF_ID")
+  odonata_obs_with_hydroatlas, odonata_obs_with_hydroatlas_wide, by="PFAF_ID")
 
 odonata_obs_with_hydroatlas_final$institutionCode <- NULL
 odonata_obs_with_hydroatlas_final$HYBAS_ID <- NULL
