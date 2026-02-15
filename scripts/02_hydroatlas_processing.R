@@ -53,4 +53,4 @@ ggplot()+  geom_sf(data=CAN_USA, aes(fill=gad_id_smj))+  theme_minimal()
 
 st_crs(CAN_USA)
 
-st_write(CAN_USA, "data/raw/NA_CA_atlas.gpkg", append=FALSE)
+st_write(CAN_USA, "data/raw/NA_CA_atlas.gpkg", append=FALSE) #st_write requires you write false or true, no default

@@ -101,7 +101,7 @@ odonata_obs_with_hydroatlas_final$year <- NULL
 
 # 4. Writing out our new file
 st_write(odonata_obs_with_hydroatlas_final, "data/processed/odonata_hydroatlas_overlay.gpkg",
-         append=FALSE) # to provide rewrite permission if file is already there
+         append=FALSE)
 
 
 
