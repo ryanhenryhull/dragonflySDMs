@@ -124,8 +124,9 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
         ),
         data = training_watersheds,
         importance = "impurity",
-        mtry = 2, #from what our training suggested
-        min.node.size = 10, # ditto
+        mtry = optimal_mtry, # 15/02/2026 edit. I don't see why we shouldnt also put the optimal
+        min.node.size = optimal_min_node_size, # hyperparameters here... its the same tree fundamentally
+        splitrule = optimal_splitrule, # as previously, just with prob=true here.
         probability = TRUE) # key difference
     
     spatial_prediction <- predict(probability_rf_model,
