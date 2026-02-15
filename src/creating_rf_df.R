@@ -24,28 +24,29 @@ species_name <- "leucorrhinia_intacta"
 
 create_rf_dataframe <- function(overlay, species_name){
   
-  # Calculate total number of observations across all PFAFs
-  nb_total_obs <- sum(overlay$watershed_obs_count)
-  
   # dividing based on presence/absence
   species_presence_hydroatlas <- overlay[which(overlay[[species_name]]==1),]
   species_absence_hydroatlas <- overlay[which(overlay[[species_name]]==0),]
-  
-  # assigning weights to the absence watersheds based on dragonfly sampling effort:
-  species_absence_hydroatlas$prob <- 
-    species_absence_hydroatlas$watershed_obs_count/nb_total_obs
   
   # what ecoregion(s) does the species in question live in?
   ecoregion_list <- unique(species_presence_hydroatlas$fec_cl_smj)
   # for sanity: how many ecoregions total?
   num_ecoregions = length(unique(overlay$fec_cl_smj))
   
+  # we only want to sample absences from ecoregions that there are presences in
+  species_absence_hydroatlas <- species_absence_hydroatlas[
+    species_absence_hydroatlas$fec_cl_smj %in% ecoregion_list,] # assumes there will be enough absence pfafs left within those ecoregions to match the number of presence pfafs... safe bet I believe
+  
+  # Calculate total number of observations across all PFAFs in retained ecoregions
+  nb_total_obs <- sum(species_absence_hydroatlas$watershed_obs_count)
+  
+  # assigning weights to the absence watersheds based on dragonfly sampling effort:
+  species_absence_hydroatlas$prob <- 
+    species_absence_hydroatlas$watershed_obs_count/nb_total_obs
+  
   # Select pseudoabsences randomly with the influence of assigned weight, from
   # pfafs in same ecoregion(s)
   # took away seed(1080) here since we want it different at each iteration
-  species_absence_hydroatlas <- species_absence_hydroatlas[
-      species_absence_hydroatlas$fec_cl_smj %in% ecoregion_list,] # assumes there will be enough absence pfafs left within those ecoregions to match the number of presence pfafs... safe bet I believe
-  
   species_pseudoabsences <-
     sample(1:nrow(species_absence_hydroatlas), # the sampling
            size = nrow(species_presence_hydroatlas), # Select a number to match nb of presences.
