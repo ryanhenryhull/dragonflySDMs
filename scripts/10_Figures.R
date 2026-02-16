@@ -11,6 +11,7 @@ library(ggplot2)
 library(lattice)
 library(sf)
 library(dplyr)
+library(car)
 
 
 
@@ -42,16 +43,6 @@ ggplot(rf_preditions, aes(x = x, y = y, fill = value)) +
   coord_equal() +
   scale_fill_viridis_c() +
   theme_minimal()
-
-
-
-
-# 4. 
-
-# 1. Libraries
-rm(list=ls())
-library(ggplot2)
-library(car)
 
 
 
@@ -102,3 +93,37 @@ partial_dependence_plot_2d <-
   scale_y_continuous(expand=c(0,0))
 
 partial_dependence_plot_2d
+
+
+
+
+
+
+
+# 6. Create heat map of where good predictions can be made.
+rf_performance_results <- read.csv("data/results/odonata_rf_performance_with_latitude_stats.csv") # not useful here
+rf_predictions <- read.csv("data/results/odonata_rf_predictions.csv")
+species_list <- read.csv("data/processed/full_odonata_species_list_with_obs.csv")
+overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
+colnames(overlay)[1] <- "PFAF"
+
+# the overlay is in wide format (one row per PFAF, columns for each species)
+# the predictions is in long format (a species column and a PFAF column, thus
+#                                    each species has nrow = nb_pfafs)
+
+# Mapping would be easier with wide format predictions.
+
+# 6.1 convert predictions df to wide format (pivot species into columns)
+rf_predictions_wide <- rf_predictions |>
+  pivot_wider(names_from = species,
+              values_from = mean_prediction,
+              values_fill = NA) # if any species-pfaf combo is missing... shouldn't happen
+
+# 6.2 join in actual presence/absence data based on pfaf
+rf_predictions_wide <- left_join(rf_predictions_wide, overlay, by="PFAF")
+
+
+
+
+
+

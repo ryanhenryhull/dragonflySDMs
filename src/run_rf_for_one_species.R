@@ -75,7 +75,7 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
     # assessing accuracy
     rf_accuracy[i,1] <- species_name
     rf_accuracy[i,2] <- sum(pred$predictions==test_watersheds[[species_name]])/
-      length(test_watersheds[[species_name]])
+      length(test_watersheds[[species_name]]) # sum of correct predictions / total rows tested
     
     # False positive rate:
     rf_accuracy[i,4] <-
