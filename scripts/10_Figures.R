@@ -122,8 +122,13 @@ rf_predictions_wide <- rf_predictions |>
 # 6.2 join in actual presence/absence data based on pfaf
 rf_predictions_wide <- left_join(rf_predictions_wide, overlay, by="PFAF")
 
-
-
+sanity <-  nrow(rf_predictions_wide[which(rf_predictions_wide$aeshna_canadensis.y == 0),])
+# so 37792 pfafs in overlay...
+# but 
+nb_pfafs <- length(unique(rf_predictions_wide$PFAF))
+# were that many pfafs truly added w/CA?
+# lets map the pfafs from overlay
+plot(st_geometry(overlay)) # so it has CA, but missing pfafs with no obs
 
 
 

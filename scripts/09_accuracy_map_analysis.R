@@ -12,6 +12,32 @@
 # so if we wanna do this subtraction business, we cant use just the true presences.
 # we'd need to use the 1/0 of the rf? but that obviously means nothing
 
+# solution: simply map the pfafs that we can.
+#           - for presences, that will be only 37792 pfafs of the total 147318.
+#           - for absences, we will use pseudoabsences from test data only, but
+#           - since we have ten different test data samplings, we can hit a lot
+#           - of pfafs
+
+# however: predictions are means across multiple iterations for each species,
+#          each iteration having 10 unique test/training data splits. 
+#          So if I use the combined 10 test datasets, then many of them were
+#          used to train other iterations of the model... 
+#          It would be thus very complicated and perhaps completely futile to
+#          account for the training-ness or testing-ness of certain pseudoabsence
+#          PFAFs before using them to measure error.
+#          ..................post-hoc......
+
+# ...........but what about during....?
+# in our run_rf src program, prediction_dataframe is the combination of ten 
+# spatial_prediction dataframes, and the mean_prediction is calculated for each
+# pfaf later on.
+# we could thus, before cbind()ing them in.... do all these calculations, knowing
+# what test data is.
+#    i.e.
+# 1. we 
+
+# solution: Simply resample pseudoabsences, and use that...
+
 
 
 
