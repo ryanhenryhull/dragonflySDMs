@@ -33,15 +33,6 @@
 # pfaf later on.
 # we could thus, before cbind()ing them in.... do all these calculations, knowing
 # what test data is.
-#    i.e.
-# 1. we 
-
-# solution: Simply resample pseudoabsences, and use that...
-
-
-
-
-
 
 
 
@@ -52,84 +43,123 @@ library(ggplot2)
 library(dplyr)
 library(sf)
 library(data.table)
+library(tidyr)
+
 
 
 
 # 2. Data
-predictions <- read.csv("data/results/odonata_rf_predictions.csv")
-odonata_hydroatlas_overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
-colnames(predictions)
+rf_performance_results <- read.csv("data/results/odonata_rf_performance_with_latitude_stats.csv") # not useful here
+rf_predictions <- read.csv("data/results/odonata_rf_predictions.csv")
+species_list <- read.csv("data/processed/full_odonata_species_list_with_obs.csv")
+
+overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
+colnames(overlay)[1] <- "PFAF"
+# we will get this and the following from hydroatlas. remove to avoid duplication later
+overlay$geom <- NULL
+overlay$pre_mm_syr <- NULL
+overlay$ele_mt_sav <- NULL
+overlay$slp_dg_sav <- NULL
+overlay$ari_ix_sav <- NULL
+overlay$tmp_dc_syr <- NULL
+overlay$snd_pc_sav <- NULL
+overlay$soc_th_sav <- NULL
+overlay$wet_cl_smj <- NULL
+overlay$lka_pc_sse <- NULL
+overlay$dis_m3_pyr <- NULL
+overlay$gad_id_smj <- NULL
+overlay$snw_pc_syr <- NULL
+overlay$for_pc_sse <- NULL
+overlay$sgr_dk_sav <- NULL
+overlay$aet_mm_syr <- NULL
+overlay$crp_pc_sse <- NULL
+overlay$fec_cl_smj <- NULL
+
+overlay <- overlay %>%
+  relocate("GBIF_species_count", .after="watershed_obs_count") # relocate column
+colnames(overlay)[5:ncol(overlay)] <-
+  paste0(colnames(overlay)[5:ncol(overlay)],  "_presence_absence")
+
+
+hydroatlas <- st_read("data/raw/NA_CA_atlas.gpkg")
+hydroatlas$HYBAS_ID <- NULL
+colnames(hydroatlas)[1] <- "PFAF"
 
 
 
-# 3. Prepare dataset for making heat map
 
-# idea: convert overlay to long format like the predictions, then join by species & PFAF
-setDT(odonata_hydroatlas_overlay)
-setDT(predictions)
+# 3. convert predictions df to wide format (pivot species into columns)
+# the overlay is in wide format (one row per PFAF, columns for each species)
+# the predictions is in long format (a species column and a PFAF column, thus
+#                                    each species has nrow = nb_pfafs)
+# Mapping would be easier with wide format predictions.
+rf_predictions_wide <- rf_predictions |>
+  pivot_wider(names_from = species,
+              values_from = mean_prediction,
+              values_fill = NA) # if any species-pfaf combo is missing... shouldn't happen
 
-# remove nonspecies cols from overlay
-odonata_hydroatlas_overlay$pre_mm_syr <- NULL
-odonata_hydroatlas_overlay$ele_mt_sav <- NULL
-odonata_hydroatlas_overlay$slp_dg_sav <- NULL
-odonata_hydroatlas_overlay$ari_ix_sav <- NULL
-odonata_hydroatlas_overlay$tmp_dc_syr <- NULL
-odonata_hydroatlas_overlay$snd_pc_sav <- NULL
-odonata_hydroatlas_overlay$soc_th_sav <- NULL
-odonata_hydroatlas_overlay$wet_cl_smj <- NULL
-odonata_hydroatlas_overlay$lka_pc_sse <- NULL
-odonata_hydroatlas_overlay$dis_m3_pyr <- NULL
-odonata_hydroatlas_overlay$gad_id_smj <- NULL
-odonata_hydroatlas_overlay$snw_pc_syr <- NULL
-odonata_hydroatlas_overlay$for_pc_sse <- NULL
-odonata_hydroatlas_overlay$sgr_dk_sav <- NULL
-odonata_hydroatlas_overlay$aet_mm_syr <- NULL
-odonata_hydroatlas_overlay$crp_pc_sse <- NULL
-odonata_hydroatlas_overlay$species_obs_count <- NULL
-odonata_hydroatlas_overlay$watershed_obs_count <- NULL
 
-# long
-overlay_long <- melt(
-  odonata_hydroatlas_overlay,
-  id.vars="PFAF_ID",
-  variable.name="species",
-  value.name = "present"
-)
 
-# now overlay_long and predictions both have $PFAF_ID, and $species
-# but overlay has the actual presence 1/0 (note 0 is not absent; just NOT present)
-# and predictions has the decimal value prediction.
-colnames(overlay_long) # PFAF_ID, species, present
-colnames(predictions) # species, PFAF, mean_prediction
-colnames(predictions)[2] <- "PFAF_ID" # to match overlay
 
-# join them
-setkey(overlay_long, species, PFAF_ID)
-setkey(predictions, species, PFAF_ID)
+# 4 join data
+
+# join hydroatlas data (this has all pfafs, whereas overlay only has pfafs where there are presences)
+rf_predictions_wide <- left_join(rf_predictions_wide, hydroatlas, by="PFAF")
+# join species presence/absence columns from the overlay
+rf_predictions_wide <- left_join(rf_predictions_wide, overlay, by="PFAF")
+rf_predictions_wide$species_obs_count <- NULL
+
+
+
+
+# 5. Calculate false-negativity using rows where presence=1
+# rows where there's NA = rows where none of the species are present
+rf_predictions_wide_present <-
+  rf_predictions_wide[!is.na(rf_predictions_wide$erythemis_mithroides_presence_absence),] # any col would do
+
+pfaf_false_negativity_results <- data.frame(
+  column1=character(),
+  column2=numeric())
+colnames(pfaf_false_negativity_results)[1] <- "pfaf"
+colnames(pfaf_false_negativity_results)[2] <- "false_negativity"
   
-predictions_with_actual_presence_data <-
-  overlay_long[predictions, on = .(species, PFAF_ID)]
+presence_absence_cols <- grep("_presence_absence$", colnames(rf_predictions_wide_present), value = TRUE)
 
-# keep only cols where presence = 1 (0 or NULL is useless, the 0 is not true absence)
-predictions_with_actual_presence_data <-
-  predictions_with_actual_presence_data[predictions_with_actual_presence_data$present == 1,]
+for (i in 1:nrow(rf_predictions_wide_present)){
+  print(i)
+  pfaf <- rf_predictions_wide_present[i,"PFAF"]
+  
+  row_as_vector <- as.numeric(rf_predictions_wide_present[i, presence_absence_cols])
+  present_colnames <- presence_absence_cols[row_as_vector == 1]
+  
+  pfaf_false_negativities <- c()
+  
+  for (species_name in present_colnames){
+    species_name <- sub("_presence_absence$", "", species_name) # now this is the colname for the prediction
+    false_negativity <- 1 - rf_predictions_wide_present[[species_name]][i]
+    pfaf_false_negativities <- c(pfaf_false_negativities, false_negativity)
+  }
+  
+  if (length(pfaf_false_negativities) > 0){ # this should be every pfaf that we're using, by definition of the overlay.... but it was failing at some rows. we'll evaluate losses after 
+    pfaf_false_negativity_results <- rbind(
+      pfaf_false_negativity_results,
+      data.frame(pfaf=pfaf, false_negativity=mean(pfaf_false_negativities)))
+  }
+  else {
+    print("strangely, no species present at this pfaf desipte it being present in overlay.")
+  }
+}
 
-# above fails. try chatgpt recommendation cause no time
-# 1. Create present_any column from list
-#predictions_with_actual_presence_data[
-#  , present_any := vapply(present, function(x) any(x == 1), logical(1))
-#]
+nb_strange_missed_pfafs <- nrow(rf_predictions_wide_present) - nrow(pfaf_false_negativity_results)  #<1% 
 
-# 2. Filter only confirmed presences
-#predictions_present_only <- predictions_with_actual_presence_data[present_any == TRUE, ]
-
-# 3. Optional: remove list column to free memory
-#predictions_present_only[, present := NULL]
+# write out these results:
+write.csv("data/results/false_negativity_per_pfaf.csv", pfaf_false_negativity_results)
 
 
-
-# 4. Make heat map 
+# 6. Make chloropeth map based on this
 ggplot(sf) +
   geom_sf(aes(fill = error_col), color = NA) +
   scale_fill_viridis_c(option = "magma") +
   theme_minimal()
+
+# ...
