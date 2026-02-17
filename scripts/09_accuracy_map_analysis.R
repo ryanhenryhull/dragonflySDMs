@@ -152,14 +152,37 @@ for (i in 1:nrow(rf_predictions_wide_present)){
 
 nb_strange_missed_pfafs <- nrow(rf_predictions_wide_present) - nrow(pfaf_false_negativity_results)  #<1% 
 
+pfaf_geom <-  hydroatlas[,c("PFAF","geom")]
+pfaf_false_negativity_results <- 
+  left_join(pfaf_false_negativity_results, pfaf_geom, by="PFAF")
+
 # write out these results:
-write.csv("data/results/false_negativity_per_pfaf.csv", pfaf_false_negativity_results)
+pfaf_false_negativity_results <- st_as_sf(pfaf_false_negativity_results)
+st_write(pfaf_false_negativity_results, "data/results/pfaf_false_negativity_results.gpkg",
+         append=FALSE)
 
+# modify to avoid aleutian island mapping annoyance
+hydroatlas <- st_wrap_dateline(
+  hydroatlas,
+  options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"),
+  quiet = FALSE
+)
 
-# 6. Make chloropeth map based on this
-ggplot(sf) +
-  geom_sf(aes(fill = error_col), color = NA) +
+# Make chloropeth map based on this
+false_positivity_map <-
+  ggplot()+
+  geom_sf(data=hydroatlas, fill="grey", color=NA) + # bottom layer: grey for all pfafs
+  geom_sf(data=pfaf_false_negativity_results, aes(fill = false_negativity), color = NA) + # top layer: color for evaluated pfafs
   scale_fill_viridis_c(option = "magma") +
+  coord_sf(
+    xlim = c(-170, -50)  # limit mapped longitudes to avoid aleutian wrapping
+  )+
   theme_minimal()
+false_positivity_map
+ggsave("outputs/false_positivity_map.png",false_positivity_map)
 
-# ...
+
+
+# 6. Make spatial plot of false positivity using... unideal data
+
+

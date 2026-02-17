@@ -34,7 +34,7 @@ hydroatlas <- read_sf("C:/Users/Dell/OneDrive - McGill University/IversenLab_Gro
 # Panama GADM ID = 173
 # Bahamas GADM ID = 17
 # Turks and Caicos = 234
-
+# Honduras =  !!!!! we  forgot honduras
 
 CAN_USA = hydroatlas %>%
   filter(gad_id_smj == 41 | gad_id_smj == 240 | gad_id_smj == 145 
