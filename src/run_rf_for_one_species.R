@@ -135,6 +135,14 @@ run_rf_for_one_species <- function(species_name, species_rf_df, optimal_mtry,
     # add this iteration to big prediction dataframe
     prediction_dataframe <- cbind(prediction_dataframe,
                                   spatial_prediction$predictions[,2]) # from lars
+    
+    
+    
+    
+    
+    # Collect false positive data based on test pseudoabsences vs prediction at this iteration
+    test_pseudoabsences <- test_data[test_data$
+    
   }
   
   

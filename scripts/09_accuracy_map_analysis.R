@@ -44,7 +44,7 @@ library(dplyr)
 library(sf)
 library(data.table)
 library(tidyr)
-
+library(leaflet)
 
 
 
@@ -125,21 +125,26 @@ colnames(pfaf_false_negativity_results)[2] <- "false_negativity"
   
 presence_absence_cols <- grep("_presence_absence$", colnames(rf_predictions_wide_present), value = TRUE)
 
+# for each row in the subdataframe of only pfafs where there is a presence
 for (i in 1:nrow(rf_predictions_wide_present)){
   print(i)
   pfaf <- rf_predictions_wide_present[i,"PFAF"]
-  
+ 
+  # take the row, with only the _presence_absence columns, as a vector 
   row_as_vector <- as.numeric(rf_predictions_wide_present[i, presence_absence_cols])
+  # for our row, which species are present?
   present_colnames <- presence_absence_cols[row_as_vector == 1]
   
   pfaf_false_negativities <- c()
-  
+ 
+  # for each species that is present in the row, calculate false negativity based on the prediction 
   for (species_name in present_colnames){
     species_name <- sub("_presence_absence$", "", species_name) # now this is the colname for the prediction
     false_negativity <- 1 - rf_predictions_wide_present[[species_name]][i]
     pfaf_false_negativities <- c(pfaf_false_negativities, false_negativity)
   }
-  
+ 
+  # join the false negativity results of this row to our results. If multiple sp present in pfaf, join mean of the false negativity 
   if (length(pfaf_false_negativities) > 0){ # this should be every pfaf that we're using, by definition of the overlay.... but it was failing at some rows. we'll evaluate losses after 
     pfaf_false_negativity_results <- rbind(
       pfaf_false_negativity_results,
@@ -150,8 +155,9 @@ for (i in 1:nrow(rf_predictions_wide_present)){
   }
 }
 
-nb_strange_missed_pfafs <- nrow(rf_predictions_wide_present) - nrow(pfaf_false_negativity_results)  #<1% 
+nb_strange_missed_pfafs_false_negativity <- nrow(rf_predictions_wide_present) - nrow(pfaf_false_negativity_results)  #<1% 
 
+# join geometry to our false negativity results for easy mapping
 pfaf_geom <-  hydroatlas[,c("PFAF","geom")]
 pfaf_false_negativity_results <- 
   left_join(pfaf_false_negativity_results, pfaf_geom, by="PFAF")
@@ -169,10 +175,135 @@ hydroatlas <- st_wrap_dateline(
 )
 
 # Make chloropeth map based on this
-false_positivity_map <-
+false_negativity_map <-
   ggplot()+
   geom_sf(data=hydroatlas, fill="grey", color=NA) + # bottom layer: grey for all pfafs
   geom_sf(data=pfaf_false_negativity_results, aes(fill = false_negativity), color = NA) + # top layer: color for evaluated pfafs
+  scale_fill_viridis_c(option = "magma") +
+  coord_sf(
+    xlim = c(-170, -50)  # limit mapped longitudes to avoid aleutian wrapping
+  )+
+  theme_minimal()
+false_negativity_map
+ggsave("outputs/false_negativity_map.png",false_negativity_map)
+
+
+# make this map interactive. leaflet can be put into shiny.
+
+# try to make pfafs align better
+st_crs(pfaf_false_negativity_results) # matches leaflet
+pfaf_false_negativity_results <- 
+  st_make_valid(pfaf_false_negativity_results)
+
+
+
+palette <- colorNumeric(
+  palette = "magma",
+  domain = pfaf_false_negativity_results$false_negativity
+)
+
+interactive_false_negativity_map <-
+  leaflet(data = pfaf_false_negativity_results) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%  # light grey background
+  addPolygons(
+    fillColor = ~palette(false_negativity),
+    fillOpacity = 0.8,
+    color = "white",
+    weight = 1,
+    popup = ~paste("Value:", false_negativity)
+  ) %>%
+  addLegend(
+    pal= palette,
+    values = ~false_negativity,
+    title = "RF SDM False Negativity"
+  )
+
+interactive_false_negativity_map
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 6. Make spatial plot of false positivity using... unideal data
+# note we could collect the test pseudoabsence data each loop iteration of 05_,
+# and evaluate false positivity there, and take averages to have values 100% free
+# of training bias. But it may be reasonably similar to simply resample pseudoabsences here
+# from pfafs where we have at least a presence.
+
+rf_predictions_wide_present <- # we still only want to sample pseudoabs from pfafs with presences.
+  rf_predictions_wide[!is.na(rf_predictions_wide$erythemis_mithroides_presence_absence),] # any col would do
+
+pfaf_false_positivity_results <- data.frame(
+  column1=character(),
+  column2=numeric())
+colnames(pfaf_false_positivity_results)[1] <- "pfaf"
+colnames(pfaf_false_positivity_results)[2] <- "false_positivity"
+  
+presence_absence_cols <- grep("_presence_absence$", colnames(rf_predictions_wide_present), value = TRUE)
+
+# for each row in the subdataframe of only pfafs where there is a presence
+for (i in 1:nrow(rf_predictions_wide_present)){
+  print(i)
+  pfaf <- rf_predictions_wide_present[i,"PFAF"]
+ 
+  # take the row, with only the _presence_absence columns, as a vector 
+  row_as_vector <- as.numeric(rf_predictions_wide_present[i, presence_absence_cols])
+  # for our row, which species are ABSENT?
+  absent_colnames <- presence_absence_cols[row_as_vector == 0] # key is 0
+  
+  pfaf_false_positivities <- c()
+ 
+  # for each species that is absent in the row, calculate false positivity based on the prediction 
+  for (species_name in absent_colnames){
+    species_name <- sub("_presence_absence$", "", species_name) # now this is the colname for the prediction
+    false_positivity <- rf_predictions_wide_present[[species_name]][i]
+    pfaf_false_positivities <- c(pfaf_false_positivities, false_positivity)
+  }
+ 
+  # join the false positivity results of this row to our results.Note all rows will have tons of absenes. take the mean. here's where we could maybe add weighting? 
+  if (length(pfaf_false_positivities) > 0){ # this should be every pfaf that we're using, by definition of the overlay.... but it was failing at some rows. we'll evaluate losses after
+    pfaf_false_positivity_results <- rbind(
+      pfaf_false_positivity_results,
+      data.frame(pfaf=pfaf, false_positivity=mean(pfaf_false_positivities)))
+  }
+  else {
+    print("strangely, no species absent at this pfaf. Would be very strange if this is the case")
+  }
+}
+
+nb_strange_missed_pfafs_false_positivity <- nrow(rf_predictions_wide_present) - nrow(pfaf_false_positivity_results)  #<1% 
+
+# join geometry to our false positivity results for easy mapping
+pfaf_geom <-  hydroatlas[,c("PFAF","geom")]
+pfaf_false_positivity_results <- 
+  left_join(pfaf_false_positivity_results, pfaf_geom, by="PFAF")
+
+# write out these results:
+pfaf_false_positivity_results <- st_as_sf(pfaf_false_positivity_results)
+st_write(pfaf_false_positivity_results, "data/results/pfaf_false_positivity_results.gpkg",
+         append=FALSE)
+
+
+# modify to avoid aleutian island mapping annoyance
+hydroatlas <- st_wrap_dateline(
+  hydroatlas,
+  options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"),
+  quiet = FALSE
+)
+
+# Make chloropeth map based on this
+false_positivity_map <-
+  ggplot()+
+  geom_sf(data=hydroatlas, fill="grey", color=NA) + # bottom layer: grey for all pfafs
+  geom_sf(data=pfaf_false_positivity_results, aes(fill = false_positivity), color = NA) + # top layer: color for evaluated pfafs
   scale_fill_viridis_c(option = "magma") +
   coord_sf(
     xlim = c(-170, -50)  # limit mapped longitudes to avoid aleutian wrapping
@@ -183,6 +314,35 @@ ggsave("outputs/false_positivity_map.png",false_positivity_map)
 
 
 
-# 6. Make spatial plot of false positivity using... unideal data
+
+# make this map interactive. leaflet can be put into shiny.
+
+# try to make pfafs align better
+st_crs(pfaf_false_positivity_results) # matches leaflet
+pfaf_false_positivity_results <- 
+  st_make_valid(pfaf_false_positivity_results)
 
 
+
+palette <- colorNumeric(
+  palette = "magma",
+  domain = pfaf_false_positivity_results$false_positivity
+)
+
+interactive_false_positivity_map <-
+  leaflet(data = pfaf_false_positivity_results) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%  # light grey background
+  addPolygons(
+    fillColor = ~palette(false_positivity),
+    fillOpacity = 0.8,
+    color = "white",
+    weight = 1,
+    popup = ~paste("Value:", false_positivity)
+  ) %>%
+  addLegend(
+    pal= palette,
+    values = ~false_positivity,
+    title = "RF SDM False Positivity"
+  )
+
+interactive_false_positivity_map
