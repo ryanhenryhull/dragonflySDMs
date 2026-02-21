@@ -59,24 +59,6 @@ create_rf_dataframe <- function(overlay, species_name){
   return(species_rf_df)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# 
-# 
 # # TESTING:
 # 
 # # 1. Libraries
@@ -134,4 +116,3 @@ create_rf_dataframe <- function(overlay, species_name){
 # 
 # species_list$species <- gsub(" ", "_", species_list$species)
 # species_list$species <- tolower(species_list$species)
-

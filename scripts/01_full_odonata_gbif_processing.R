@@ -36,7 +36,7 @@ can_usa_odonata_obs <-
 # Keep only observations whose coordinate uncertainty doesn't exceed our gridsize
 can_usa_odonata_obs <- 
   can_usa_odonata_obs[is.na(can_usa_odonata_obs$coordinateUncertaintyInMeters) |
-                    can_usa_odonata_obs$coordinateUncertaintyInMeters < 10000,]
+                    can_usa_odonata_obs$coordinateUncertaintyInMeters < 500,]
 
 # Keep only the last 25 years of observations
 can_usa_odonata_obs <- 
@@ -49,6 +49,8 @@ can_usa_odonata_obs <- can_usa_odonata_obs[which(can_usa_odonata_obs$taxonRank==
 
 
 # 3. Data cleaning - Mexico / Central America observations
+# plus forgotten honduras observations
+
 mex_cen_odonata_obs <- fread("data/raw/gbif_mexico_central_america_odonata.csv")
 mex_cen_odonata_obs <- as.data.frame(mex_cen_odonata_obs)
 
@@ -66,6 +68,25 @@ mex_cen_odonata_obs <-
   mex_cen_odonata_obs[mex_cen_odonata_obs$year >= 2000,]
 mex_cen_odonata_obs <- mex_cen_odonata_obs[which(mex_cen_odonata_obs$taxonRank=="SPECIES"), ]
 
+
+
+
+honduras_odonata_obs <- fread("data/raw/gbif_honduras_odonata.csv")
+honduras_odonata_obs <- as.data.frame(honduras_odonata_obs)
+
+honduras_odonata_obs <- honduras_odonata_obs[c("gbifID","order","family","genus","species",
+                                             "taxonRank","countryCode", "stateProvince",
+                                             "individualCount","decimalLatitude",
+                                             "decimalLongitude","coordinateUncertaintyInMeters",
+                                             "day","month","year","institutionCode")]
+honduras_odonata_obs <-
+  honduras_odonata_obs[!is.na(honduras_odonata_obs$decimalLatitude) & !is.na(honduras_odonata_obs$decimalLongitude),]
+honduras_odonata_obs <- 
+  honduras_odonata_obs[is.na(honduras_odonata_obs$coordinateUncertaintyInMeters) |
+                        honduras_odonata_obs$coordinateUncertaintyInMeters < 10000,]
+honduras_odonata_obs <- 
+  honduras_odonata_obs[honduras_odonata_obs$year >= 2000,]
+honduras_odonata_obs <- honduras_odonata_obs[which(honduras_odonata_obs$taxonRank=="SPECIES"), ]
 
 
 
@@ -94,16 +115,20 @@ qualified_uscan_odonata_obs <-
 qualified_mex_cen_obs <-
   mex_cen_odonata_obs[mex_cen_odonata_obs$species %in% qualified_species$species,]
 
-# Merge the two and recount species observations with the added obs
-qualified_all_obs <- rbind(qualified_uscan_odonata_obs, qualified_mex_cen_obs)
+# do the same for forgotten honduras
+qualified_honduras_obs <-
+  honduras_odonata_obs[honduras_odonata_obs$species %in% qualified_species$species,]
 
-qualified_species_obs_counts_with_mex_cen <- qualified_all_obs %>%
+# Merge the two and recount species observations with the added obs
+qualified_all_obs <- rbind(qualified_uscan_odonata_obs, qualified_mex_cen_obs, qualified_honduras_obs)
+
+qualified_species_obs_counts_with_mex_cen_honduras <- qualified_all_obs %>%
   group_by(species) %>%
   summarise(observations = n())   # count rows per species
 
 qualified_all_obs <- merge(
   qualified_all_obs,
-  qualified_species_obs_counts_with_mex_cen,
+  qualified_species_obs_counts_with_mex_cen_honduras,
   by = "species",
   all.x = TRUE # keeps all qualified_all_obs ie like a left join
 )
@@ -115,4 +140,5 @@ qualified_all_obs <- rename(qualified_all_obs, species_obs_count = observations)
 
 # 6. Writing out data
 write.csv(qualified_all_obs, "data/processed/odonata_obs_clean.csv", row.names=FALSE)
-write.csv(qualified_species_obs_counts_with_mex_cen, "data/processed/full_odonata_species_list_with_obs.csv", row.names=FALSE)
+write.csv(qualified_species_obs_counts_with_mex_cen_honduras, "data/processed/full_odonata_species_list_with_obs.csv", row.names=FALSE)
+

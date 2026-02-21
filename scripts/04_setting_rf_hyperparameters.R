@@ -29,7 +29,7 @@ source("src/creating_rf_df.R")
 
 
 # 2. Data
-species_list <- read.csv("data/processed/odonata_species_list_with_obs.csv")
+species_list <- read.csv("data/processed/full_odonata_species_list_with_obs.csv")
 odonata_hydroatlas_overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
 
 
@@ -38,7 +38,7 @@ odonata_hydroatlas_overlay <- st_read("data/processed/odonata_hydroatlas_overlay
 # 3. Selecting ten species randomly
 set.seed(244)
 
-random_numbers = sample.int(321, 10, replace=FALSE)
+random_numbers = sample.int(385, 10, replace=FALSE) # HARD CODED 385 species
 random_species = species_list[random_numbers, ]
 rm(species_list)
 rm(random_numbers)
@@ -65,10 +65,10 @@ rm(random_species)
 # 5. Setting up overlay for rf training
 
 # re-join watersheds w/o odonata obs 
-all_basins <- st_read("data/raw/CAN_USA_atlas.gpkg") # this has the env. vars., IDs, and geom
+all_basins <- st_read("data/raw/NA_CA_atlas.gpkg") # this has the env. vars., IDs, and geom
 
 # take out cols to avoid duplication
-odonata_hydroatlas_overlay = odonata_hydroatlas_overlay[, c(1, 18:ncol(odonata_hydroatlas_overlay))] #removes env.vars.
+odonata_hydroatlas_overlay = odonata_hydroatlas_overlay[, c(1, 19:ncol(odonata_hydroatlas_overlay))] #removes env.vars.
 odonata_hydroatlas_overlay$geom <- NULL
 
 # merge. note, obviously the non-odonate-pfafs will not be selected for RF.
@@ -102,7 +102,7 @@ random_species_hyperparameters$species <-
 all_species_training_results <- data.frame()
 
 for (species in random_species_hyperparameters$species){
-  
+  print(species)
   # from src: this creates a df of presence/absence watersheds, where absence
   #           sampling was weighted toward pfafs with more observations, and
   #           only taken from PFAFs of the same ecoregion(s) that presences 

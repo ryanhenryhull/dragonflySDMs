@@ -21,6 +21,7 @@ sf::sf_use_s2(FALSE) # to work on a flat earth. Should be ok for below work.
 
 # 2. Reading in data. Convert species obs to sf:
 
+species_list <- read.csv("data/processed/full_odonata_species_list_with_obs.csv")
 all_odonata_obs <- read.csv("data/processed/odonata_obs_clean.csv")
 all_odonata_obs_sf <- st_as_sf( # st stands for spatial type
   all_odonata_obs,
@@ -68,7 +69,7 @@ odonata_obs_with_hydroatlas_wide <- dplyr::rename(
 
 # how many different species per PFAF?
 odonata_obs_with_hydroatlas_wide$GBIF_species_count <-
-  rowSums(odonata_obs_with_hydroatlas_wide[, 2:390]) ## hard coded 390 #species here.
+  rowSums(odonata_obs_with_hydroatlas_wide[, 2:386]) ## hard coded 385 num_species here.
 
 
 # Adding back in columns of interest 
@@ -98,7 +99,6 @@ odonata_obs_with_hydroatlas_final$year <- NULL
 
 
 
-
 # 4. Writing out our new file
 st_write(odonata_obs_with_hydroatlas_final, "data/processed/odonata_hydroatlas_overlay.gpkg",
          append=FALSE)
@@ -107,11 +107,12 @@ st_write(odonata_obs_with_hydroatlas_final, "data/processed/odonata_hydroatlas_o
 
 # 5. Visualisation of obs on map of America
 northamerica <- st_read("data/raw/NA_shapefile/boundaries_p_2021_v3.shp")
+
 world <- st_read("data/raw/world_shapefile/ne_10m_admin_0_countries.shp")
 obs_map <-
   ggplot() +
     geom_sf(data = world, fill = "grey90", color = "grey60") +
     geom_sf(data = odonata_obs_with_hydroatlas_final, color = "red", size = 0.6) +
     theme_minimal()
-
+obs_map
 ggsave("outputs/obs_map.png",obs_map)

@@ -101,6 +101,8 @@ rf_predictions_wide <- rf_predictions |>
 
 
 
+
+
 # 4 join data
 
 # join hydroatlas data (this has all pfafs, whereas overlay only has pfafs where there are presences)
@@ -194,8 +196,6 @@ ggsave("outputs/false_negativity_map.png",false_negativity_map)
 st_crs(pfaf_false_negativity_results) # matches leaflet
 pfaf_false_negativity_results <- 
   st_make_valid(pfaf_false_negativity_results)
-
-
 
 palette <- colorNumeric(
   palette = "magma",

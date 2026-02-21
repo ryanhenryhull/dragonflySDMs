@@ -14,7 +14,8 @@ library(ggplot2)
 
 # 2. Data - very heavy so hardcode shared file
 hydroatlas <- read_sf("C:/Users/Dell/OneDrive - McGill University/IversenLab_Group - HydroATLAS/BasinATLAS_v10_shp/BasinATLAS_v10_lev12.shp")
-
+# or: for GIC computer
+hydroatlas <- read_sf("U:/hydroatlas/BasinATLAS_v10_lev12.shp")
 
 # 3. Filtering
 # Canada GADM ID = 41 
@@ -34,7 +35,7 @@ hydroatlas <- read_sf("C:/Users/Dell/OneDrive - McGill University/IversenLab_Gro
 # Panama GADM ID = 173
 # Bahamas GADM ID = 17
 # Turks and Caicos = 234
-# Honduras =  !!!!! we  forgot honduras
+# Honduras = 101 
 
 CAN_USA = hydroatlas %>%
   filter(gad_id_smj == 41 | gad_id_smj == 240 | gad_id_smj == 145 
@@ -42,7 +43,7 @@ CAN_USA = hydroatlas %>%
          | gad_id_smj == 66 | gad_id_smj == 181 | gad_id_smj == 113 
          | gad_id_smj == 94 | gad_id_smj == 23 | gad_id_smj == 70
          | gad_id_smj == 161 | gad_id_smj == 55 | gad_id_smj == 173
-         | gad_id_smj == 17 | gad_id_smj == 234) %>%
+         | gad_id_smj == 17 | gad_id_smj == 234 | gad_id_smj == 101) %>%
   select(c(HYBAS_ID, PFAF_ID, pre_mm_syr, ele_mt_sav, slp_dg_sav, ari_ix_sav,
            tmp_dc_syr,  snd_pc_sav, soc_th_sav, wet_cl_smj, lka_pc_sse,
            dis_m3_pyr, gad_id_smj, snw_pc_syr, for_pc_sse, sgr_dk_sav, aet_mm_syr,
