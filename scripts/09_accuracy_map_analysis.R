@@ -48,10 +48,30 @@ library(leaflet)
 
 
 
+
 # 2. Data
 rf_performance_results <- read.csv("data/results/odonata_rf_performance_with_latitude_stats.csv") # not useful here
-rf_predictions <- read.csv("data/results/odonata_rf_predictions.csv")
 species_list <- read.csv("data/processed/full_odonata_species_list_with_obs.csv")
+
+rf_predictions_1_50 <- read.csv("data/results/odonata_rf_predictions_1_50.csv")
+rf_predictions_51_100 <- read.csv("data/results/odonata_rf_predictions_51_100.csv")
+rf_predictions_101_150 <- read.csv("data/results/odonata_rf_predictions_101_150.csv")
+rf_predictions_151_200 <- read.csv("data/results/odonata_rf_predictions_151_200.csv")
+rf_predictions_201_250 <- read.csv("data/results/odonata_rf_predictions_201_250.csv")
+rf_predictions_251_300 <- read.csv("data/results/odonata_rf_predictions_251_300.csv")
+rf_predictions_351_385 <- read.csv("data/results/odonata_rf_predictions_351_385.csv")
+
+rf_predictions <- rbind(
+  rf_predictions_1_50,
+  rf_predictions_51_100,
+  rf_predictions_101_150,
+  rf_predictions_151_200,
+  rf_predictions_201_250,
+  rf_predictions_251_300,
+  rf_predictions_351_385
+)
+
+rm(list=setdiff(ls(),c("rf_performance_results","rf_predictions","species_list")))
 
 overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
 colnames(overlay)[1] <- "PFAF"
@@ -80,7 +100,6 @@ overlay <- overlay %>%
 colnames(overlay)[5:ncol(overlay)] <-
   paste0(colnames(overlay)[5:ncol(overlay)],  "_presence_absence")
 
-
 hydroatlas <- st_read("data/raw/NA_CA_atlas.gpkg")
 hydroatlas$HYBAS_ID <- NULL
 colnames(hydroatlas)[1] <- "PFAF"
@@ -97,8 +116,6 @@ rf_predictions_wide <- rf_predictions |>
   pivot_wider(names_from = species,
               values_from = mean_prediction,
               values_fill = NA) # if any species-pfaf combo is missing... shouldn't happen
-
-
 
 
 
@@ -181,7 +198,7 @@ false_negativity_map <-
   ggplot()+
   geom_sf(data=hydroatlas, fill="grey", color=NA) + # bottom layer: grey for all pfafs
   geom_sf(data=pfaf_false_negativity_results, aes(fill = false_negativity), color = NA) + # top layer: color for evaluated pfafs
-  scale_fill_viridis_c(option = "magma") +
+  scale_fill_viridis_c(option = "magma", name = "False Negative Rate") +
   coord_sf(
     xlim = c(-170, -50)  # limit mapped longitudes to avoid aleutian wrapping
   )+
@@ -219,15 +236,6 @@ interactive_false_negativity_map <-
   )
 
 interactive_false_negativity_map
-
-
-
-
-
-
-
-
-
 
 
 
@@ -304,7 +312,7 @@ false_positivity_map <-
   ggplot()+
   geom_sf(data=hydroatlas, fill="grey", color=NA) + # bottom layer: grey for all pfafs
   geom_sf(data=pfaf_false_positivity_results, aes(fill = false_positivity), color = NA) + # top layer: color for evaluated pfafs
-  scale_fill_viridis_c(option = "magma") +
+  scale_fill_viridis_c(option = "magma", name="False Positive Rate") +
   coord_sf(
     xlim = c(-170, -50)  # limit mapped longitudes to avoid aleutian wrapping
   )+
