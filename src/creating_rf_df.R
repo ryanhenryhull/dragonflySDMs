@@ -18,9 +18,9 @@
 
 
 # the following is just for testing the function:
-library("sf")
-overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
-species_name <- "leucorrhinia_intacta"
+#library("sf")
+#overlay <- st_read("data/processed/odonata_hydroatlas_overlay.gpkg")
+#species_name <- "leucorrhinia_intacta"
 
 create_rf_dataframe <- function(overlay, species_name){
   
@@ -43,6 +43,12 @@ create_rf_dataframe <- function(overlay, species_name){
   # assigning weights to the absence watersheds based on dragonfly sampling effort:
   species_absence_hydroatlas$prob <- 
     species_absence_hydroatlas$watershed_obs_count/nb_total_obs
+ 
+  # I'm getting issues with the below sample() call. to diagnose:
+  cat("Species:", species_name, "\n")
+  cat("Presences:", nrow(species_presence_hydroatlas), "\n")
+  cat("Absences:", nrow(species_absence_hydroatlas), "\n")
+  cat("Sum weights:", sum(species_absence_hydroatlas$watershed_obs_count), "\n\n")
   
   # Select pseudoabsences randomly with the influence of assigned weight, from
   # pfafs in same ecoregion(s)

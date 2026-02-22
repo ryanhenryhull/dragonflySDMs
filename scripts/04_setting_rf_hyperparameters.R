@@ -80,25 +80,21 @@ odonata_hydroatlas_overlay$HYBAS_ID <- NULL
 rm(all_basins)
 
 # remove now useless columns: (this bit may also be unnecessary)
+# this requires species name in different format:
+random_species_hyperparameters$species <-
+  tolower(gsub(" ", "_", random_species_hyperparameters$species))
+species_list <- random_species_hyperparameters$species
 odonata_hydroatlas_overlay <- odonata_hydroatlas_overlay[
   c("PFAF_ID", "pre_mm_syr", "ele_mt_sav", "slp_dg_sav", "ari_ix_sav",
     "tmp_dc_syr",  "snd_pc_sav", "soc_th_sav", "wet_cl_smj", "lka_pc_sse",
     "dis_m3_pyr", "gad_id_smj", "snw_pc_syr", "for_pc_sse", "sgr_dk_sav",
     "aet_mm_syr", "crp_pc_sse", "fec_cl_smj", "watershed_obs_count",
-    "GBIF_species_count", "geom", "epitheca_petechialis", "brachymesia_herbida", "aeshna_clepsydra",
-    "aeshna_tuberculifera", "libellula_cyanea", "argia_oenea",
-    "enallagma_exsulans", "lestes_rectangularis", "epitheca_canis",
-    "ophiogomphus_rupinsulensis")
+    "GBIF_species_count", "geom", species_list)
 ]
 
 
 
 # 6. Run caret train function for all species
-
-# this requires species name in different format:
-random_species_hyperparameters$species <-
-  tolower(gsub(" ", "_", random_species_hyperparameters$species))
-
 all_species_training_results <- data.frame()
 
 for (species in random_species_hyperparameters$species){
@@ -185,8 +181,8 @@ for (species in random_species_hyperparameters$species){
   random_species_hyperparameters[
     random_species_hyperparameters$species == species, "splitrule"] <- best_splitrule
 }
-# most frequent combination is mtry=5, nodesize=5
-optimal <- c("optimal",NA,5,"gini",5)
+# most frequent combination is mtry=2, nodesize=7
+optimal <- c("optimal",NA,2,"gini",7)
 random_species_hyperparameters <- rbind(random_species_hyperparameters, optimal)
 
 
