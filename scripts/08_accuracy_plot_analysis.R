@@ -22,7 +22,7 @@ library(car)
 rf_results_with_lat_data <- read.csv("data/results/odonata_rf_performance_with_latitude_stats.csv")
 
 # how many have good accuracy
-length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/318
+length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/385
 
 
 
@@ -163,6 +163,7 @@ obs_density_vs_rf_accuracy_log
 
 
 
+
 # 7. Model stats
 lm_lat_accuracy <- lm(mean_accuracy ~ mean_lat, data=rf_results_with_lat_data)
 summary(lm_lat_accuracy)
@@ -192,3 +193,25 @@ ggsave("outputs/rf_accuracy_vs_obs_density_log.png", plot = obs_density_vs_rf_ac
 # the 2D partial dependence plot
 ggsave("outputs/rf_2D_partial_dependence_plot_meanlat_obsdensity_rfaccuracy.png",
        plot=partial_dependence_plot_2d, width=7, height=5)
+
+
+
+
+
+# 9. General numbers
+
+# how many have good accuracy
+length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/318
+
+mean(rf_results_with_lat_data$mean_accuracy)
+
+median(rf_results_with_lat_data$mean_accuracy)
+
+mean(rf_results_with_lat_data$mean_fn_rate)
+mean(rf_results_with_lat_data$mean_fp_rate)
+
+# mean accuracy above montreal
+mean(rf_results_with_lat_data[rf_results_with_lat_data$mean_lat > 45, "mean_accuracy"])
+
+# mean accuracy below LA    
+mean(rf_results_with_lat_data[rf_results_with_lat_data$mean_lat < 33, "mean_accuracy"])
