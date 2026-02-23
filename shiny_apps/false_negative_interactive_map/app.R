@@ -14,12 +14,12 @@ library(rsconnect)
 library(sf)
 
 # read in data, path relative to the directory home of app.R
-pfaf_false_negativity_results <- st_read("data/results/pfaf_false_negativity_results.gpkg")
+pfaf_false_negativity_results <- st_read("pfaf_false_negativity_results.gpkg")
 
 
 # ui
 ui <- fluidPage(
-  titlePanel("False Negative Rate"),
+  h4("Negative prediction error by watershed, averaged across all species present"),
   leafletOutput("map")
 )
 
@@ -36,7 +36,7 @@ server <- function(input,output,session){
       addProviderTiles(providers$CartoDB.Positron) %>%  # light grey background
       addPolygons(
         fillColor = ~palette(false_negativity),
-        fillOpacity = 0.8,
+        fillOpacity = 0.7,
         color = "white",
         weight = 1,
         popup = ~paste("Value:", false_negativity)
@@ -44,7 +44,7 @@ server <- function(input,output,session){
       addLegend(
         pal= palette,
         values = ~false_negativity,
-        title = "RF SDM False Negativity")
+        title = "Negative Prediction Error")
     })
 }
 
