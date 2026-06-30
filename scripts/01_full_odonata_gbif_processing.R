@@ -119,7 +119,7 @@ qualified_mex_cen_obs <-
 qualified_honduras_obs <-
   honduras_odonata_obs[honduras_odonata_obs$species %in% qualified_species$species,]
 
-# Merge the two and recount species observations with the added obs
+# Merge them all and recount species observations with the added obs
 qualified_all_obs <- rbind(qualified_uscan_odonata_obs, qualified_mex_cen_obs, qualified_honduras_obs)
 
 qualified_species_obs_counts_with_mex_cen_honduras <- qualified_all_obs %>%

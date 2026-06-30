@@ -45,13 +45,12 @@ mean_lat_vs_rf_accuracy
 
 
 
-
 # 4. Assess and plot mean sp. lat. vs model accuracy - multiple regression to assess
 #    whether effect is independent of observation density
 
 lat_logdensity_accuracy_multiple_regression <-
   lm(data=rf_results_with_lat_data,
-     mean_accuracy ~ centroid_decimalLat + log(observation_density_obs_per_km2))
+     mean_accuracy ~ centroid_decimalLat + log(observation_density_obs_per_km2)) #!!!!!!!!!! ********* to look for effect of bias 
 summary(lat_logdensity_accuracy_multiple_regression)
 
 avPlots(lat_logdensity_accuracy_multiple_regression) # crappy visual
@@ -96,6 +95,24 @@ partial_dependence_plot_2d
 # note geom_contour_filled kinda does together what the following do individually
 # 1. scale_fill_steps(n.breaks=10) (the discrete colors), and
 # 2. geom_contour(aes(z=accuracy_predition),bins=10) (lines only)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

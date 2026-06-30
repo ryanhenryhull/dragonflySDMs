@@ -1,10 +1,10 @@
 # ------------------------------------------------------------------------------
 # Author: Ryan Hull
 # Date: November 2025
-# Purpose: Calculate mean and median latitude and area from range predictions
+# Purpose: Calculate mean and median latitude and area from range predictions.
+#          Calculate the Matthews Correlation Coefficient (MCC), a more robust
+#          accuracy metric for predictions.
 # ------------------------------------------------------------------------------
-
-
 
 # 1. Libraries
 library(sf)
@@ -89,5 +89,7 @@ for (species in species_list$species){
 
 
 
-# 5. Write out beautiful data
+
+
+# 6. Write out beautiful data
 write.csv(odonata_rf_results, "data/results/odonata_rf_performance_with_latitude_stats.csv", row.names=FALSE)
