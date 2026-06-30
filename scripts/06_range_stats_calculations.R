@@ -7,15 +7,15 @@
 # ------------------------------------------------------------------------------
 
 # 1. Libraries
+rm(list=ls())
 library(sf)
 library(lwgeom)
 
 
 # 2. Data
-rm(list=ls())
 odonata_rf_results <- read.csv("data/results/odonata_rf_performance_results.csv")
-odonata_obs <- read.csv("data/processed/all_odonata_obs_clean.csv")
-species_list <- read.csv("data/processed/odonata_species_list_with_obs.csv")
+odonata_obs <- read.csv("data/processed/odonata_obs_clean.csv")
+species_list <- read.csv("data/processed/full_odonata_species_list_with_obs.csv")
 
 odonata_obs$species <- gsub(" ", "_", odonata_obs$species)
 odonata_obs$species <- tolower(odonata_obs$species)

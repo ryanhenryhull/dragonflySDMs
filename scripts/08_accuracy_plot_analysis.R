@@ -22,7 +22,7 @@ library(car)
 rf_results_with_lat_data <- read.csv("data/results/odonata_rf_performance_with_latitude_stats.csv")
 
 # how many have good accuracy
-length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/318
+length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/385
 
 
 
@@ -45,17 +45,23 @@ mean_lat_vs_rf_accuracy
 
 
 
-# 4. Assess and plot mean sp. lat. vs model accuracy - multiple regression to assess
+
+# 4. Assess and plot mean sp. lat. vs model accuracy - standard multiple regression to assess
 #    whether effect is independent of observation density
 
 lat_logdensity_accuracy_multiple_regression <-
   lm(data=rf_results_with_lat_data,
      mean_accuracy ~ centroid_decimalLat + log(observation_density_obs_per_km2)) #!!!!!!!!!! ********* to look for effect of bias 
 summary(lat_logdensity_accuracy_multiple_regression)
+avPlots(lat_logdensity_accuracy_multiple_regression) # crappy visual of each effect
 
-avPlots(lat_logdensity_accuracy_multiple_regression) # crappy visual
 
 # create grid of density and lat values, run predictions for each combo, then plot as 2D partial dependence plot
+# this is a multiple linear regression with interaction (or, interaction model)
+lat_logdensity_accuracy_multiple_regression_with_interaction <-
+  lm(data=rf_results_with_lat_data,
+     mean_accuracy ~ centroid_decimalLat * log(observation_density_obs_per_km2))
+summary(lat_logdensity_accuracy_multiple_regression_with_interaction)
 lat_seq <- seq(min(rf_results_with_lat_data$centroid_decimalLat),
                max(rf_results_with_lat_data$centroid_decimalLat),
                length.out=100) #creates 100 evenspaced values between min and max centroid lat
@@ -69,7 +75,7 @@ lat_density_grid <- expand.grid(
   observation_density_obs_per_km2 = density_seq)
 
 lat_density_grid$accuracy_prediction <-
-  predict(lat_logdensity_accuracy_multiple_regression, newdata=lat_density_grid)
+  predict(lat_logdensity_accuracy_multiple_regression_with_interaction, newdata=lat_density_grid)
 
 ggplot(data=lat_density_grid,
        mapping=aes(x=centroid_decimalLat,y=observation_density_obs_per_km2,fill=accuracy_prediction))+
@@ -175,6 +181,7 @@ obs_density_vs_rf_accuracy_log
 
 
 
+
 # 7. Model stats
 lm_lat_accuracy <- lm(mean_accuracy ~ mean_lat, data=rf_results_with_lat_data)
 summary(lm_lat_accuracy)
@@ -189,18 +196,40 @@ lm_density_accuracy <- lm(mean_accuracy ~ observation_density_obs_per_km2, data 
 
 # 8. Write out beautiful results
 ggsave("outputs/rf_accuracy_vs_centroid_latitude_of_convex_hull.png", plot = mean_lat_vs_rf_accuracy,
-       width = 10, height = 7)
+       width = 9, height = 6)
 
 ggsave("outputs/rf_accuracy_vs_num_obs.png", plot = number_observations_vs_rf_accuracy,
-       width = 10, height = 7)
+       width = 9, height = 6)
 
 ggsave("outputs/rf_accuracy_vs_num_obs_log.png", plot = number_observations_vs_rf_accuracy_log,
-       width = 10, height = 7)
+       width = 9, height = 6)
 
 ggsave("outputs/rf_accuracy_vs_obs_density_log.png", plot = obs_density_vs_rf_accuracy_log,
-       width = 10, height = 7)
+       width = 9, height = 6)
 
 
 # the 2D partial dependence plot
 ggsave("outputs/rf_2D_partial_dependence_plot_meanlat_obsdensity_rfaccuracy.png",
        plot=partial_dependence_plot_2d, width=7, height=5)
+
+
+
+
+
+# 9. General numbers
+
+# how many have good accuracy
+length(which(rf_results_with_lat_data$mean_accuracy > 0.8))/318
+
+mean(rf_results_with_lat_data$mean_accuracy)
+
+median(rf_results_with_lat_data$mean_accuracy)
+
+mean(rf_results_with_lat_data$mean_fn_rate)
+mean(rf_results_with_lat_data$mean_fp_rate)
+
+# mean accuracy above montreal
+mean(rf_results_with_lat_data[rf_results_with_lat_data$mean_lat > 45, "mean_accuracy"])
+
+# mean accuracy below LA    
+mean(rf_results_with_lat_data[rf_results_with_lat_data$mean_lat < 33, "mean_accuracy"])
